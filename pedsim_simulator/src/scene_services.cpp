@@ -14,7 +14,7 @@
 #include <std_srvs/SetBool.h>
 #include <flatland_msgs/SpawnModels.h>
 #include <flatland_msgs/DeleteModels.h>
-#include <flatland_msgs/RespawnModels.h>
+// #include <flatland_msgs/RespawnModels.h>
 #include <iostream>
 #include <ros/package.h>
 
@@ -24,16 +24,16 @@
 SceneServices::SceneServices(){
   //Pedsim service
   spawn_ped_service_ =
-      nh.advertiseService("pedsim_simulator/spawn_ped", &SceneServices::spawnPed, this);
-  respawn_peds_service_ =
-      nh.advertiseService("pedsim_simulator/respawn_peds", &SceneServices::respawnPeds, this);
+      nh.advertiseService("pedsim_simulator/spawn_peds", &SceneServices::spawnPeds, this);
+  // respawn_peds_service_ =
+  //     nh.advertiseService("pedsim_simulator/respawn_peds", &SceneServices::respawnPeds, this);
   remove_all_peds_service_ = nh.advertiseService("pedsim_simulator/remove_all_peds", &SceneServices::removeAllPeds, this);
   
   //flatland service clients
   spawn_model_topic = ros::this_node::getNamespace() + "/spawn_models";
   spawn_agents_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
-  respawn_model_topic = ros::this_node::getNamespace() + "/respawn_models";
-  respawn_agents_ = nh.serviceClient<flatland_msgs::RespawnModels>(respawn_model_topic, true);
+  // respawn_model_topic = ros::this_node::getNamespace() + "/respawn_models";
+  // respawn_agents_ = nh.serviceClient<flatland_msgs::RespawnModels>(respawn_model_topic, true);
   delete_model_topic = ros::this_node::getNamespace() + "/delete_models";
   delete_agents_ = nh.serviceClient<flatland_msgs::DeleteModels>(delete_model_topic, true);
   flatland_path_ = ros::package::getPath("simulator_setup");
@@ -45,67 +45,69 @@ SceneServices::SceneServices(){
 }
 
 
-bool SceneServices::spawnPed(pedsim_srvs::SpawnPeds::Request &request,
+bool SceneServices::spawnPeds(pedsim_srvs::SpawnPeds::Request &request,
                                 pedsim_srvs::SpawnPeds::Response &response) {
       flatland_msgs::SpawnModels srv;
-      ros::WallTime start = ros::WallTime::now();
       for (int ped_i = 0; ped_i < (int)request.peds.size(); ped_i++){
         pedsim_msgs::Ped ped = request.peds[ped_i];
-             std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
+        std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
         srv.request.models.insert(srv.request.models.end(), new_models.begin(), new_models.end());
       }
-      start = ros::WallTime::now();
       while(!spawn_agents_.isValid()){
-          ROS_WARN("Reconnecting spawn_agents_-server....");
-          spawn_agents_.waitForExistence(ros::Duration(5.0));
-          spawn_agents_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
+        ROS_WARN("Reconnecting spawn_agents_-server....");
+        spawn_agents_.waitForExistence(ros::Duration(5.0));
+        spawn_agents_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
       }
       spawn_agents_.call(srv);
-      if (!srv.response.success)
+      if (srv.response.success)
       {
-          response.finished = false;
-          ROS_ERROR("Failed to spawn all %d agents", request.peds.size());
+        response.finished = true;
+        ROS_INFO("Successfully called flatland spawn_models service");
       }
-      response.finished = true;
+      else
+      {
+        response.finished = false;
+        ROS_ERROR("Failed to spawn all %d agents", request.peds.size());
+      }
       return true;
 }
 
-bool SceneServices::respawnPeds(pedsim_srvs::SpawnPeds::Request &request,
-                                pedsim_srvs::SpawnPeds::Response &response){
+// bool SceneServices::respawnPeds(pedsim_srvs::SpawnPeds::Request &request,
+//                                 pedsim_srvs::SpawnPeds::Response &response){
   
-  ros::Time begin = ros::Time::now();
-  flatland_msgs::RespawnModels srv;
-  srv.request.old_model_names = removePedsInPedsim();
-  for (int ped_i = 0; ped_i < (int)request.peds.size(); ped_i++){
-    pedsim_msgs::Ped ped = request.peds[ped_i];
-    std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
-    srv.request.new_models.insert(srv.request.new_models.end(), new_models.begin(), new_models.end());
-  }
-  response.finished=false;
-  int count=0;
+//   ros::Time begin = ros::Time::now();
+//   flatland_msgs::RespawnModels srv;
+//   srv.request.old_model_names = removePedsInPedsim();
+//   for (int ped_i = 0; ped_i < (int)request.peds.size(); ped_i++){
+//     pedsim_msgs::Ped ped = request.peds[ped_i];
+//     std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
+//     srv.request.new_models.insert(srv.request.new_models.end(), new_models.begin(), new_models.end());
+//   }
+//   response.finished=false;
+//   int count=0;
 
-  begin = ros::Time::now();
-  while(!respawn_agents_.isValid()){
-    ROS_DEBUG("Reconnecting spawn_agents_-server....");
-    respawn_agents_.waitForExistence(ros::Duration(5.0));
-    respawn_agents_ = nh.serviceClient<flatland_msgs::RespawnModels>(respawn_model_topic, true);
-  } 
-  while(!response.finished&&count<10){
-  respawn_agents_.call(srv);
-  if (!srv.response.success)
-  {
-      ROS_ERROR("Failed to respawn all %d humans", request.peds.size());
-      response.finished=false;
-      count++;
-  }else{
-    response.finished = true;
-    break;
-  } 
+//   begin = ros::Time::now();
+//   while(!respawn_agents_.isValid()){
+//     ROS_DEBUG("Reconnecting spawn_agents_-server....");
+//     respawn_agents_.waitForExistence(ros::Duration(5.0));
+//     respawn_agents_ = nh.serviceClient<flatland_msgs::RespawnModels>(respawn_model_topic, true);
+//   } 
+//   while(!response.finished&&count<10){
+//   respawn_agents_.call(srv);
+//   if (!srv.response.success)
+//   {
+//       ROS_ERROR("Failed to respawn all %d humans", request.peds.size());
+//       response.finished=false;
+//       count++;
+//   }else{
+//     response.finished = true;
+//     break;
+//   } 
 
-  }
+//   }
 
-  return true;
-}
+//   return true;
+// }
 
 
 bool SceneServices::removeAllPeds(std_srvs::SetBool::Request &request,
