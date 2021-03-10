@@ -293,7 +293,7 @@ void Ped::Tagent::move(double stepSizeIn) {
   // sum of all forces --> acceleration
   a = forceFactorDesired * desiredforce + forceFactorSocial * socialforce 
     + forceFactorObstacle * obstacleforce + myforce;
-    // ROS_INFO("desiredforce %lf,%lf,%lf, ", desiredforce.x,desiredforce.y,desiredforce.z);
+    // ROS_INFO("desiredforce: %lf,%lf,%lf  factor: %lf", desiredforce.x, desiredforce.y, desiredforce.z, forceFactorDesired);
     // ROS_INFO("socialforce, %lf,%lf,%lf",socialforce.x,socialforce.y,socialforce.z);
     // ROS_INFO("obstacleforce,%lf,%lf,%lf",obstacleforce.x,obstacleforce.y,obstacleforce.z);
     // ROS_INFO("myforce, %lf,%lf,%lf",myforce.x,myforce.y,myforce.z);

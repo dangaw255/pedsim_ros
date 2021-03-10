@@ -53,7 +53,7 @@ AgentStateMachine::AgentStateMachine(Agent* agentIn) {
   shoppingPlanner = nullptr;
   groupAttraction = nullptr;
   shallLoseAttraction = false;
-
+  working = false;
   // initialize state machine
   state = StateNone;
 }
@@ -132,6 +132,20 @@ void AgentStateMachine::doStateTransition() {
 
   // → operate on waypoints/destinations
   if ((state == StateNone) || agent->needNewDestination()) {
+
+    // add behavior of vehicle when it reaches destination
+    if (agent->getType() == Ped::Tagent::AgentType::ADULT && agent->hasCompletedDestination())
+    {
+      if (!working)
+      {
+        startWorking = ros::WallTime::now();
+        working = true;
+        activateState(StateWorking);
+      }
+
+    }
+
+
     Ped::Twaypoint* destination = agent->updateDestination();
     Waypoint* waypoint = dynamic_cast<Waypoint*>(destination);
     // TODO: move this to the agent
@@ -148,13 +162,48 @@ void AgentStateMachine::doStateTransition() {
         activateState(StateWalking);
     }
   }
+
+  // do work
+  if (state == StateWorking)
+  {
+    // stop moving
+    agent->setForceFactorDesired(0.0);
+    ros::WallDuration diff = ros::WallTime::now() - startWorking;
+
+    if (diff.toSec() < 2.0)
+    {
+      // publish state going up
+      ROS_INFO("going up");
+    }
+    else if (2.0 <= diff.toSec() && diff.toSec() <= 5.0)
+    {
+      // publish state loading
+      ROS_INFO("loading");
+    }
+    else if (5.0 <= diff.toSec() && diff.toSec() <= 7.0)
+    {
+      // publish state going down
+      ROS_INFO("going down");
+    }
+    else
+    {
+      // finished work
+      working = false;
+      agent->setForceFactorDesired(1.0);
+      activateState(StateWalking);
+    }
+
+    return;
+  }
+
   // → operate for chatting pattern (6.2.2021 Junhui Li)
   //a random probability to meet a familiar person and begin chatting
-  if ((state == StateWalking) &&agent->meetFriends()) {
+  if ((state == StateWalking) && agent->meetFriends()) {
     startTalking=false;
     activateState(StateTalking);
     return;
   }
+
   if (state == StateTalking ) {
     ros::WallTime endRecord = ros::WallTime::now();
     if(!startTalking){
@@ -172,7 +221,7 @@ void AgentStateMachine::doStateTransition() {
 }
 
 void AgentStateMachine::activateState(AgentState stateIn) {
-  ROS_DEBUG("Agent %d activating state '%s' (time: %f)", agent->getId(),
+  ROS_DEBUG("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
             stateToName(stateIn).toStdString().c_str(), SCENE.getTime());
 
   // de-activate old state

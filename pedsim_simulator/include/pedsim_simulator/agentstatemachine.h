@@ -56,7 +56,8 @@ class AgentStateMachine : public QObject {
     StateWalking = 3,
     StateGroupWalking = 4,
     StateShopping = 5,
-    StateTalking = 6
+    StateTalking = 6,
+    StateWorking = 7
   } AgentState;
 
   // Constructor and Destructor
@@ -103,6 +104,10 @@ class AgentStateMachine : public QObject {
   // → Talking
   bool startTalking;
   ros::WallTime startRecord;
+
+  // working
+  bool working;
+  ros::WallTime startWorking;
 };
 
 #endif

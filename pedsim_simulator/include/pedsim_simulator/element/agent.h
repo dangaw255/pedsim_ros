@@ -80,6 +80,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
 
   Ped::Twaypoint* getCurrentDestination() const;
   bool needNewDestination() const;
+  bool hasCompletedDestination() const;
 
   // → group
   bool isInGroup() const;

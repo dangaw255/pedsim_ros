@@ -31,7 +31,7 @@ SceneServices::SceneServices(){
   
   //flatland service clients
   spawn_model_topic = ros::this_node::getNamespace() + "/spawn_models";
-  spawn_agents_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
+  spawn_models_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
   // respawn_model_topic = ros::this_node::getNamespace() + "/respawn_models";
   // respawn_agents_ = nh.serviceClient<flatland_msgs::RespawnModels>(respawn_model_topic, true);
   delete_model_topic = ros::this_node::getNamespace() + "/delete_models";
@@ -45,31 +45,34 @@ SceneServices::SceneServices(){
 }
 
 
-bool SceneServices::spawnPeds(pedsim_srvs::SpawnPeds::Request &request,
-                                pedsim_srvs::SpawnPeds::Response &response) {
-      flatland_msgs::SpawnModels srv;
-      for (int ped_i = 0; ped_i < (int)request.peds.size(); ped_i++){
-        pedsim_msgs::Ped ped = request.peds[ped_i];
-        std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
-        srv.request.models.insert(srv.request.models.end(), new_models.begin(), new_models.end());
-      }
-      while(!spawn_agents_.isValid()){
-        ROS_WARN("Reconnecting spawn_agents_-server....");
-        spawn_agents_.waitForExistence(ros::Duration(5.0));
-        spawn_agents_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
-      }
-      spawn_agents_.call(srv);
-      if (srv.response.success)
-      {
-        response.finished = true;
-        ROS_INFO("Successfully called flatland spawn_models service");
-      }
-      else
-      {
-        response.finished = false;
-        ROS_ERROR("Failed to spawn all %d agents", request.peds.size());
-      }
-      return true;
+bool SceneServices::spawnPeds(pedsim_srvs::SpawnPeds::Request &request, pedsim_srvs::SpawnPeds::Response &response) {
+  flatland_msgs::SpawnModels srv;
+
+  for (int ped_i = 0; ped_i < (int)request.peds.size(); ped_i++){
+    pedsim_msgs::Ped ped = request.peds[ped_i];
+    std::vector<flatland_msgs::Model> new_models = addAgentClusterToPedsim(ped);
+    srv.request.models.insert(srv.request.models.end(), new_models.begin(), new_models.end());
+  }
+
+  while(!spawn_models_.isValid()){
+    ROS_WARN("Reconnecting to flatland spawn_models service...");
+    spawn_models_.waitForExistence(ros::Duration(5.0));
+    spawn_models_ = nh.serviceClient<flatland_msgs::SpawnModels>(spawn_model_topic, true);
+  }
+
+  spawn_models_.call(srv);
+  if (srv.response.success)
+  {
+    response.finished = true;
+    ROS_INFO("Successfully called flatland spawn_models service");
+  }
+  else
+  {
+    response.finished = false;
+    ROS_ERROR("Failed to spawn all %d agents", request.peds.size());
+  }
+  
+  return true;
 }
 
 // bool SceneServices::respawnPeds(pedsim_srvs::SpawnPeds::Request &request,

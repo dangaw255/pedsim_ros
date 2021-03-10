@@ -223,6 +223,16 @@ bool Agent::needNewDestination() const {
   }
 }
 
+bool Agent::hasCompletedDestination() const {
+  if (waypointplanner == nullptr)
+  {
+    return false;
+  }
+  bool res = waypointplanner->hasCompletedDestination();
+  ROS_INFO("%s", res ? "true" : "false");
+  return res;
+}
+
 Ped::Twaypoint* Agent::getCurrentWaypoint() const {
   // sanity checks
   if (waypointplanner == nullptr) return nullptr;

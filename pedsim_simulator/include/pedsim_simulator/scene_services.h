@@ -74,7 +74,7 @@ class SceneServices {
 
 
   std::string spawn_model_topic;
-  ros::ServiceClient spawn_agents_;             //Service client to spawn agent in flatland
+  ros::ServiceClient spawn_models_;             //Service client to spawn agent in flatland
   std::string respawn_model_topic;
   ros::ServiceClient respawn_agents_;            //Service client to spawn agent in flatland
   std::string delete_model_topic;
