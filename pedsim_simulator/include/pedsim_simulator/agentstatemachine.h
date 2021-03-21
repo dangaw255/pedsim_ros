@@ -76,9 +76,9 @@ class AgentStateMachine : public QObject {
  public:
   void doStateTransition();
   AgentState getCurrentState();
+  void activateState(AgentState stateIn);
 
  protected:
-  void activateState(AgentState stateIn);
   void deactivateState(AgentState stateIn);
   bool checkGroupForAttractions(AttractionArea** attractionOut = nullptr) const;
   QString stateToName(AgentState stateIn) const;
@@ -106,8 +106,7 @@ class AgentStateMachine : public QObject {
   ros::WallTime startRecord;
 
   // working
-  bool working;
-  ros::WallTime startWorking;
+  ros::WallTime startWorkingTimestamp;
 };
 
 #endif

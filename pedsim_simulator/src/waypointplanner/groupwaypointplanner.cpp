@@ -49,10 +49,6 @@ bool GroupWaypointPlanner::setGroup(AgentGroup* groupIn) {
 
 Waypoint* GroupWaypointPlanner::getDestination() const { return destination; }
 
-void GroupWaypointPlanner::setDestination(Waypoint* waypointIn) {
-  destination = waypointIn;
-}
-
 Waypoint* GroupWaypointPlanner::getCurrentWaypoint() { return destination; }
 
 bool GroupWaypointPlanner::hasCompletedDestination() const {

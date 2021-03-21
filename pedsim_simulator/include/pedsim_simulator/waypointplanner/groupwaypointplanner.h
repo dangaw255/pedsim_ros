@@ -48,7 +48,6 @@ class GroupWaypointPlanner : public WaypointPlanner {
  public:
   // → Waypoint
   Waypoint* getDestination() const;
-  void setDestination(Waypoint* waypointIn);
 
   // → WaypointPlanner Overrides
  public:
@@ -63,9 +62,6 @@ class GroupWaypointPlanner : public WaypointPlanner {
   // Attributes
  protected:
   AgentGroup* group;
-
-  // → Waypoints
-  Waypoint* destination;
 };
 
 #endif

@@ -52,7 +52,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
 
   // Constructor and Destructor
  public:
-  Agent();
+  Agent(int id, std::string name);
   virtual ~Agent();
 
   // Signals
@@ -133,6 +133,13 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   virtual QPointF getVisiblePosition() const;
   virtual void setVisiblePosition(const QPointF& positionIn);
   QString toString() const;
+  void reset();
+  int id_;
+  std::string name_;
+  QList<Waypoint*> destinations;
+  int destination_index_;
+  double initial_pos_x_;
+  double initial_pos_y_;
 
   // Attributes
  protected:
@@ -140,7 +147,6 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   AgentStateMachine* stateMachine;
 
   // → waypoints
-  QList<Waypoint*> destinations;
   Waypoint* currentDestination;
 
   // → group

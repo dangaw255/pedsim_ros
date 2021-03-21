@@ -34,19 +34,28 @@
 #include <pedsim_simulator/rng.h>
 #include <pedsim_simulator/scene.h>
 
-AgentCluster::AgentCluster(double xIn, double yIn, int countIn) {
-  static int lastID = 0;
+int AgentCluster::lastID = 0;
 
-  // initialize values
+AgentCluster::AgentCluster(double xIn, double yIn, int countIn) {
   id = ++lastID;
   position = Ped::Tvector(xIn, yIn);
   count = countIn;
   distribution = QSizeF(0, 0);
   agentType = Ped::Tagent::ADULT;
   shallCreateGroups = true;
-};
+}
 
 AgentCluster::~AgentCluster() {}
+
+std::vector<std::string> AgentCluster::generate_agent_names() {
+  // id = ++lastID;
+  std::vector<std::string> agent_names;
+  for (int i = 0; i < count; ++i) {
+    std::string agent_name = "person_" + std::to_string(id) + "_" + std::to_string(i);
+    agent_names.push_back(agent_name);
+  }
+  return agent_names;
+}
 
 QList<Agent*> AgentCluster::dissolve() {
   QList<Agent*> agents;
@@ -56,9 +65,12 @@ QList<Agent*> AgentCluster::dissolve() {
   std::uniform_real_distribution<double> randomY(-distribution.height() / 2,
                                                  distribution.height() / 2);
 
+  std::vector<std::string> agent_names = this->generate_agent_names();
+
   // create and initialize agents
   for (int i = 0; i < count; ++i) {
-    Agent* a = new Agent();
+    Agent* a = new Agent(i, agent_names[i]);
+    ROS_INFO("created new agent");
 
     double randomizedX = position.x;
     double randomizedY = position.y;
@@ -66,6 +78,8 @@ QList<Agent*> AgentCluster::dissolve() {
     if (distribution.width() != 0) randomizedX += randomX(RNG());
     if (distribution.height() != 0) randomizedY += randomY(RNG());
     a->setPosition(randomizedX, randomizedY);
+    a->initial_pos_x_ = randomizedX;
+    a->initial_pos_y_ = randomizedY;
     a->setType(agentType);
 
     // add waypoints to the agent

@@ -49,17 +49,12 @@ Waypoint* IndividualWaypointPlanner::getDestination() const {
   return destination;
 }
 
-void IndividualWaypointPlanner::setDestination(Waypoint* waypointIn) {
-  destination = waypointIn;
-}
-
 Waypoint* IndividualWaypointPlanner::getCurrentWaypoint() {
   return destination;
 }
 
 bool IndividualWaypointPlanner::hasCompletedDestination() const {
   if (destination == nullptr) {
-    ROS_DEBUG("IndividualWaypointPlanner: No destination set!");
     return true;
   }
 

@@ -53,7 +53,6 @@ AgentStateMachine::AgentStateMachine(Agent* agentIn) {
   shoppingPlanner = nullptr;
   groupAttraction = nullptr;
   shallLoseAttraction = false;
-  working = false;
   // initialize state machine
   state = StateNone;
 }
@@ -131,78 +130,55 @@ void AgentStateMachine::doStateTransition() {
   }
 
   // → operate on waypoints/destinations
-  if ((state == StateNone) || agent->needNewDestination()) {
-
-    // add behavior of vehicle when it reaches destination
-    if (agent->getType() == Ped::Tagent::AgentType::ADULT && agent->hasCompletedDestination())
-    {
-      if (!working)
-      {
-        startWorking = ros::WallTime::now();
-        working = true;
-        activateState(StateWorking);
-      }
-
-    }
-
-
+  if (state == StateNone) {
     Ped::Twaypoint* destination = agent->updateDestination();
-    Waypoint* waypoint = dynamic_cast<Waypoint*>(destination);
-    // TODO: move this to the agent
-    WaitingQueue* waitingQueue = dynamic_cast<WaitingQueue*>(waypoint);
-
     if (destination == nullptr)
       activateState(StateWaiting);
-    else if (waitingQueue != nullptr)
-      activateState(StateQueueing);
-    else {
-      if (agent->isInGroup())
-        activateState(StateGroupWalking);
-      else
-        activateState(StateWalking);
-    }
+    else
+      activateState(StateWalking);
+  }
+
+  if (agent->hasCompletedDestination()) {
+    agent->updateDestination();
+    activateState(StateWorking);    
   }
 
   // do work
   if (state == StateWorking)
   {
-    // stop moving
-    agent->setForceFactorDesired(0.0);
-    ros::WallDuration diff = ros::WallTime::now() - startWorking;
+    ros::WallDuration diff = ros::WallTime::now() - startWorkingTimestamp ;
 
     if (diff.toSec() < 2.0)
     {
       // publish state going up
-      ROS_INFO("going up");
+      // ROS_INFO("going up");
     }
     else if (2.0 <= diff.toSec() && diff.toSec() <= 5.0)
     {
       // publish state loading
-      ROS_INFO("loading");
+      // ROS_INFO("loading");
     }
     else if (5.0 <= diff.toSec() && diff.toSec() <= 7.0)
     {
       // publish state going down
-      ROS_INFO("going down");
+      // ROS_INFO("going down");
     }
     else
     {
       // finished work
-      working = false;
-      agent->setForceFactorDesired(1.0);
       activateState(StateWalking);
     }
 
     return;
   }
 
-  // → operate for chatting pattern (6.2.2021 Junhui Li)
-  //a random probability to meet a familiar person and begin chatting
-  if ((state == StateWalking) && agent->meetFriends()) {
-    startTalking=false;
-    activateState(StateTalking);
-    return;
-  }
+  // // → operate for chatting pattern (6.2.2021 Junhui Li)
+  // //a random probability to meet a familiar person and begin chatting
+  // if ((state == StateWalking) && agent->meetFriends()) {
+  //   startTalking=false;
+  //   activateState(StateTalking);
+  //   return;
+  // }
 
   if (state == StateTalking ) {
     ros::WallTime endRecord = ros::WallTime::now();
@@ -221,7 +197,7 @@ void AgentStateMachine::doStateTransition() {
 }
 
 void AgentStateMachine::activateState(AgentState stateIn) {
-  ROS_DEBUG("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
+  ROS_INFO("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
             stateToName(stateIn).toStdString().c_str(), SCENE.getTime());
 
   // de-activate old state
@@ -268,28 +244,33 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       agent->setWaypointPlanner(nullptr);
       break;
     case StateShopping:
-      shallLoseAttraction = false;
-      if (shoppingPlanner == nullptr) shoppingPlanner = new ShoppingPlanner();
-      AttractionArea* attraction =
-          SCENE.getClosestAttraction(agent->getPosition());
-      shoppingPlanner->setAgent(agent);
-      shoppingPlanner->setAttraction(attraction);
-      agent->setWaypointPlanner(shoppingPlanner);
-      agent->disableForce("GroupCoherence");
-      agent->disableForce("GroupGaze");
+      {
+        shallLoseAttraction = false;
+        if (shoppingPlanner == nullptr) shoppingPlanner = new ShoppingPlanner();
+        AttractionArea* attraction =
+            SCENE.getClosestAttraction(agent->getPosition());
+        shoppingPlanner->setAgent(agent);
+        shoppingPlanner->setAttraction(attraction);
+        agent->setWaypointPlanner(shoppingPlanner);
+        agent->disableForce("GroupCoherence");
+        agent->disableForce("GroupGaze");
 
-      // keep other agents informed about the attraction
-      AgentGroup* group = agent->getGroup();
-      if (group != nullptr) {
-        foreach (Agent* member, group->getMembers()) {
-          if (member == agent) continue;
+        // keep other agents informed about the attraction
+        AgentGroup* group = agent->getGroup();
+        if (group != nullptr) {
+          foreach (Agent* member, group->getMembers()) {
+            if (member == agent) continue;
 
-          AgentStateMachine* memberStateMachine = member->getStateMachine();
-          connect(shoppingPlanner, SIGNAL(lostAttraction()), memberStateMachine,
-                  SLOT(loseAttraction()));
+            AgentStateMachine* memberStateMachine = member->getStateMachine();
+            connect(shoppingPlanner, SIGNAL(lostAttraction()), memberStateMachine,
+                    SLOT(loseAttraction()));
+          }
         }
       }
-
+      break;
+    case StateWorking:
+      startWorkingTimestamp = ros::WallTime::now();
+      agent->setWaypointPlanner(nullptr);
       break;
   }
 
@@ -386,6 +367,8 @@ QString AgentStateMachine::stateToName(AgentState stateIn) const {
       return "StateTalking";
     case StateShopping:
       return "StateShopping";
+    case StateWorking:
+      return "StateWorking";
     default:
       return "UnknownState";
   }

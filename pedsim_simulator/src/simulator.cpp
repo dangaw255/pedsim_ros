@@ -470,6 +470,9 @@ std::string Simulator::agentStateToActivity(
     case AgentStateMachine::AgentState::StateQueueing:
       activity = pedsim_msgs::AgentState::TYPE_WAITING_IN_QUEUE;
       break;
+    case AgentStateMachine::AgentState::StateWorking:
+      activity = pedsim_msgs::AgentState::TYPE_WORKING;
+      break;
     case AgentStateMachine::AgentState::StateShopping:
       break;
     case AgentStateMachine::AgentState::StateNone:

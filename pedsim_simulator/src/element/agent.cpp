@@ -39,7 +39,7 @@
 #include <pedsim_simulator/rng.h>
 #include <ros/ros.h>
 
-Agent::Agent() {
+Agent::Agent(int id, std::string name) {
   // initialize
   Ped::Tagent::setType(Ped::Tagent::ADULT);
   Ped::Tagent::setForceFactorObstacle(CONFIG.forceObstacle);
@@ -52,6 +52,9 @@ Agent::Agent() {
   stateMachine = new AgentStateMachine(this);
   // group
   group = nullptr;
+  id_ = id;
+  name_ = name;
+  destination_index_ = 0;
 }
 
 Agent::~Agent() {
@@ -130,15 +133,35 @@ Ped::Twaypoint* Agent::getCurrentDestination() const {
   return currentDestination;
 }
 
+void Agent::reset() {
+  // reset position
+  setPosition(initial_pos_x_, initial_pos_y_);
+
+  // reset destination
+  destination_index_ = 0;
+
+  // reset state
+  stateMachine->activateState(AgentStateMachine::AgentState::StateNone);
+}
+
 Ped::Twaypoint* Agent::updateDestination() {
   // assign new destination
   if (!destinations.isEmpty()) {
-    if (currentDestination != nullptr) {
-      // cycle through destinations
-      Waypoint* previousDestination = destinations.takeFirst();
-      destinations.append(previousDestination);
-    }
-    currentDestination = destinations.first();
+    // cycle through destinations
+    destination_index_ = (destination_index_ + 1) % destinations.count();
+    currentDestination = destinations[destination_index_];
+
+    // DEBUG PRINT
+    // if (this->id == 0)
+    // {
+    //   ROS_INFO("updated destination to (%.1lf, %.1lf)", currentDestination->getx(), currentDestination->gety());
+    //   ROS_INFO("current destinations:");
+    //   foreach(Waypoint* wp, destinations)
+    //   {
+    //     // print destinations
+    //     ROS_INFO("(%.1lf, %.1lf)", wp->getx(), wp->gety());
+    //   }
+    // }
   }
 
   return currentDestination;
@@ -228,9 +251,7 @@ bool Agent::hasCompletedDestination() const {
   {
     return false;
   }
-  bool res = waypointplanner->hasCompletedDestination();
-  ROS_INFO("%s", res ? "true" : "false");
-  return res;
+  return waypointplanner->hasCompletedDestination();
 }
 
 Ped::Twaypoint* Agent::getCurrentWaypoint() const {
