@@ -148,48 +148,43 @@ void AgentStateMachine::doStateTransition() {
   {
     ros::WallDuration diff = ros::WallTime::now() - startWorkingTimestamp ;
 
-    if (diff.toSec() < 2.0)
-    {
-      // publish state going up
-      // ROS_INFO("going up");
-    }
-    else if (2.0 <= diff.toSec() && diff.toSec() <= 5.0)
-    {
-      // publish state loading
-      // ROS_INFO("loading");
-    }
-    else if (5.0 <= diff.toSec() && diff.toSec() <= 7.0)
-    {
-      // publish state going down
-      // ROS_INFO("going down");
-    }
-    else
-    {
-      // finished work
+    // if (diff.toSec() < 2.0)
+    // {
+    //   // publish state going up
+    //   // ROS_INFO("going up");
+    // }
+    // else if (2.0 <= diff.toSec() && diff.toSec() <= 5.0)
+    // {
+    //   // publish state loading
+    //   // ROS_INFO("loading");
+    // }
+    // else if (5.0 <= diff.toSec() && diff.toSec() <= 7.0)
+    // {
+    //   // publish state going down
+    //   // ROS_INFO("going down");
+    // }
+    // else
+    // {
+    //   // finished work
+    //   activateState(StateWalking);
+    // }
+
+    if (diff.toSec() > 1.0)
       activateState(StateWalking);
-    }
 
     return;
   }
 
-  // // → operate for chatting pattern (6.2.2021 Junhui Li)
-  // //a random probability to meet a familiar person and begin chatting
-  // if ((state == StateWalking) && agent->meetFriends()) {
-  //   startTalking=false;
-  //   activateState(StateTalking);
-  //   return;
-  // }
+  // → operate for chatting pattern (6.2.2021 Junhui Li)
+  //a random probability to meet a familiar person and begin chatting
+  if ((state == StateWalking) && agent->meetFriends()) {
+    activateState(StateTalking);
+    return;
+  }
 
-  if (state == StateTalking ) {
-    ros::WallTime endRecord = ros::WallTime::now();
-    if(!startTalking){
-      ros::WallTime now = ros::WallTime::now();
-      startRecord=now;
-      startTalking=true;
-    }
-    ros::WallDuration diff = endRecord - startRecord;
-    if(diff.toSec()>1.20){ //transfer to StateWalking 120 time steps for chatting
-      agent->setMeetFriends(false);
+  if (state == StateTalking) {
+    ros::WallDuration diff = ros::WallTime::now() - startTalkingTimestamp;
+    if (diff.toSec() > 6.20) {
       activateState(StateWalking);
       return;
     }
@@ -197,7 +192,7 @@ void AgentStateMachine::doStateTransition() {
 }
 
 void AgentStateMachine::activateState(AgentState stateIn) {
-  ROS_INFO("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
+  ROS_DEBUG("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
             stateToName(stateIn).toStdString().c_str(), SCENE.getTime());
 
   // de-activate old state
@@ -241,6 +236,7 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       agent->setWaypointPlanner(groupWaypointPlanner);
       break;
     case StateTalking:
+      startTalkingTimestamp = ros::WallTime::now();
       agent->setWaypointPlanner(nullptr);
       break;
     case StateShopping:
@@ -290,7 +286,8 @@ void AgentStateMachine::deactivateState(AgentState state) {
       // nothing to do
       break;
     case StateTalking:
-      // nothing to do
+      // reset talking to id
+      agent->talking_to_id_ = -1;
       break;
     case StateQueueing:
       // nothing to do

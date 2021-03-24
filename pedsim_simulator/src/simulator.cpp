@@ -383,6 +383,8 @@ void Simulator::publishAgents() {
 
     state.forces = agent_forces;
 
+    state.talking_to_id = a->talking_to_id_;
+
     all_status.agent_states.push_back(state);
     // ROS_WARN("publish agent states %d,%lf, typeID,%d",state.id,state.twist.linear.x,state.type);
   }

@@ -102,8 +102,7 @@ class AgentStateMachine : public QObject {
   bool shallLoseAttraction;
 
   // → Talking
-  bool startTalking;
-  ros::WallTime startRecord;
+  ros::WallTime startTalkingTimestamp;
 
   // working
   ros::WallTime startWorkingTimestamp;

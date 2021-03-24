@@ -30,6 +30,8 @@ class SceneServices {
   ros::ServiceServer spawn_peds_service_;
   ros::ServiceServer reset_peds_service_;
 
+  static int agents_index_;
+
      /**
     * spawn_ped_service_ + spawnPed
     * @brief Spawns pedestrian in pedsim and flatland.

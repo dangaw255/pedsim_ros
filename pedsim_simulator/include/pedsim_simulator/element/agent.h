@@ -55,6 +55,12 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   Agent(int id, std::string name);
   virtual ~Agent();
 
+  enum WaypointMode {
+    LOOP = 0,
+    RANDOM = 1
+  };
+
+
   // Signals
  signals:
   void positionChanged(double x, double y) const;
@@ -110,8 +116,6 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   void disableForce(const QString& forceNameIn);
   void enableAllForces();
   bool meetFriends();
-  bool meetFriend;
-  void setMeetFriends(bool meetOrNot);
 
   // → Ped::Tagent Overrides/Overloads
  public:
@@ -140,6 +144,9 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   int destination_index_;
   double initial_pos_x_;
   double initial_pos_y_;
+  int talking_to_id_;
+  double chatting_probability_;
+  WaypointMode waypoint_mode_;
 
   // Attributes
  protected:

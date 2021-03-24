@@ -35,6 +35,7 @@
 #include <pedsim_simulator/scene.h>
 
 int AgentCluster::lastID = 0;
+default_random_engine generator;
 
 AgentCluster::AgentCluster(double xIn, double yIn, int countIn) {
   id = ++lastID;
@@ -43,12 +44,18 @@ AgentCluster::AgentCluster(double xIn, double yIn, int countIn) {
   distribution = QSizeF(0, 0);
   agentType = Ped::Tagent::ADULT;
   shallCreateGroups = true;
+  forceFactorDesired = 1.0;
+  forceFactorSocial = 2.0;
+  forceFactorObstacle = 10.0;
+  normal_distribution<double> distribution(0.6, 0.2);
+  vmax = distribution(generator);
+  chatting_probability = 0.1;
+  waypoint_mode = Agent::WaypointMode::LOOP;
 }
 
 AgentCluster::~AgentCluster() {}
 
 std::vector<std::string> AgentCluster::generate_agent_names() {
-  // id = ++lastID;
   std::vector<std::string> agent_names;
   for (int i = 0; i < count; ++i) {
     std::string agent_name = "person_" + std::to_string(id) + "_" + std::to_string(i);
@@ -81,6 +88,13 @@ QList<Agent*> AgentCluster::dissolve() {
     a->initial_pos_x_ = randomizedX;
     a->initial_pos_y_ = randomizedY;
     a->setType(agentType);
+    a->setVmax(vmax);
+    a->chatting_probability_ = chatting_probability;
+    a->waypoint_mode_ = waypoint_mode;
+    a->setForceFactorDesired(forceFactorDesired);
+    a->setForceFactorSocial(forceFactorSocial);
+    a->setForceFactorObstacle(forceFactorObstacle);
+
 
     // add waypoints to the agent
     foreach (Waypoint* waypoint, waypoints)

@@ -55,6 +55,7 @@ Agent::Agent(int id, std::string name) {
   id_ = id;
   name_ = name;
   destination_index_ = 0;
+  talking_to_id_ = -1;
 }
 
 Agent::~Agent() {
@@ -147,8 +148,14 @@ void Agent::reset() {
 Ped::Twaypoint* Agent::updateDestination() {
   // assign new destination
   if (!destinations.isEmpty()) {
-    // cycle through destinations
-    destination_index_ = (destination_index_ + 1) % destinations.count();
+    if (waypoint_mode_ == WaypointMode::RANDOM) {
+      // choose random destination
+      destination_index_ = rand() % destinations.count();
+    } else {
+      // cycle through destinations
+      destination_index_ = (destination_index_ + 1) % destinations.count();
+    }
+    
     currentDestination = destinations[destination_index_];
 
     // DEBUG PRINT
@@ -337,34 +344,33 @@ QList<const Agent*> Agent::getPotentialChatters(double chattingDist) const{
 }
 //Added by Junhui Li (8.2.2021)
 bool Agent::meetFriends(){
-    // if(this->meetFriend){      
-    //   return true;
-    // } 
-    QList<const Agent*> potentialChatters=getPotentialChatters(1.3);// dist for start chatting later could be put into config
-    for (const Agent* chatter: potentialChatters) {
-      if(chatter !=nullptr){
-        if(chatter->meetFriend==true){
-          this->meetFriend=true;
+  QList<const Agent*> potentialChatters = getPotentialChatters(1.3);  // dist for start chatting later could be put into config
+
+  // check if someone is talking to this
+  for (const Agent* chatter: potentialChatters) {
+    if (chatter != nullptr) {
+      if (chatter->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTalking) {
+        if (chatter->talking_to_id_ == this->id_) {
           return true;
         }
       }
     }
-    // uniform_real_distribution<double> Distribution(0, 1);
-    // double possiblityForChatting = Distribution(RNG());
-    if(!potentialChatters.isEmpty()){// possiblity for chatting which could be set in config later &&possiblityForChatting<0.9
-      // ROS_INFO("meet friend");
-      this->meetFriend=true;
-      return true;
-    }else{ 
-    this->meetFriend=false;
-    return false;
   }
-}
 
-void Agent::setMeetFriends(bool meetOrNot){
-  this->meetFriend=meetOrNot;
-}
+  // start talking sometimes when there is someone near
+  uniform_real_distribution<double> Distribution(0, 1);
+  double possiblityForChatting = Distribution(RNG());
+  if (!potentialChatters.isEmpty()) {
+    if (possiblityForChatting < chatting_probability_) {
+      // start chatting to a random person
+      int idx = std::rand() % potentialChatters.length();
+      this->talking_to_id_ = potentialChatters[idx]->id_;
+      return true;
+    }
+  }
 
+  return false;
+}
 
 void Agent::disableForce(const QString& forceNameIn) {
   // disable force by adding it to the list of disabled forces

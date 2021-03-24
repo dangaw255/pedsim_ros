@@ -4,6 +4,14 @@ int16 id
 geometry_msgs/Point pos
 int16 type
 int16 number_of_peds
+float64 vmax
+float64 chatting_probability
+int16 waypoint_mode
+
+# forces
+float64 force_factor_desired
+float64 force_factor_obstacle
+float64 force_factor_social
 
 # regarding waypoints:
 # x, y: position

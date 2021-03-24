@@ -17,6 +17,7 @@
 #include <iostream>
 #include <ros/package.h>
 
+int SceneServices::agents_index_ = 0;
 
 SceneServices::SceneServices() {
   //Pedsim service
@@ -144,6 +145,17 @@ AgentCluster* SceneServices::addAgentClusterToPedsim(pedsim_msgs::Ped ped) {
   const int type = ped.type;
   agentCluster->setType(static_cast<Ped::Tagent::AgentType>(type));
 
+  agentCluster->vmax = ped.vmax;
+  agentCluster->chatting_probability = ped.chatting_probability;
+
+  int waypoint_mode = ped.waypoint_mode;
+  agentCluster->waypoint_mode = static_cast<Agent::WaypointMode>(waypoint_mode);
+
+  // set force factors
+  agentCluster->forceFactorDesired = ped.force_factor_desired;
+  agentCluster->forceFactorObstacle = ped.force_factor_obstacle;
+  agentCluster->forceFactorSocial = ped.force_factor_social;
+
   // add waypoints to agentcluster and scene
   for(int i = 0; i < (int) ped.waypoints.size(); i++){
     QString id;
@@ -173,7 +185,8 @@ std::vector<flatland_msgs::Model> SceneServices::getFlatlandModelsFromAgentClust
     flatland_msgs::Model model;
     model.yaml_path = yaml_file;
     model.name = names[i];
-    model.ns = "pedsim_agent_" +  std::to_string(i);
+    model.ns = "pedsim_agent_" +  std::to_string(agents_index_);
+    agents_index_++;
     model.pose.x = agentCluster->getPosition().x;
     model.pose.y = agentCluster->getPosition().y;
     flatland_msg.push_back(model);

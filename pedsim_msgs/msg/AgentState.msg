@@ -5,6 +5,7 @@ string social_state
 geometry_msgs/Pose pose
 geometry_msgs/Twist twist
 pedsim_msgs/AgentForce forces
+int64 talking_to_id
 
 # Use sensors package to control observability
 

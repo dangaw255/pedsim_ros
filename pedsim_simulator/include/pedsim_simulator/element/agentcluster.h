@@ -96,6 +96,12 @@ class AgentCluster : public ScenarioElement {
 
  public:
   static int lastID;
+  double forceFactorDesired;
+  double forceFactorSocial;
+  double forceFactorObstacle;
+  double vmax;
+  double chatting_probability;
+  Agent::WaypointMode waypoint_mode;
 };
 
 #endif
