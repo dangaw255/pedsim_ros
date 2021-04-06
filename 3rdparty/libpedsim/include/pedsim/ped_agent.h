@@ -15,6 +15,8 @@
 
 #include "ped_vector.h"
 #include <iostream>
+#include <vector>
+#include <nav_msgs/OccupancyGrid.h>
 
 #include <deque>
 #include <set>
@@ -60,7 +62,7 @@ class LIBEXPORT Tagent {
   virtual Tvector desiredForce();
   virtual Tvector robotForce();
   virtual Tvector socialForce() const;
-  virtual Tvector obstacleForce() const;
+  virtual Tvector obstacleForce();
   virtual Tvector myForce(Tvector desired) const;
   virtual Twaypoint* getCurrentWaypoint() const = 0;
 
@@ -105,6 +107,15 @@ class LIBEXPORT Tagent {
 
   void assignScene(Tscene* sceneIn);
   void removeAgentFromNeighbors(const Tagent* agentIn);
+
+  std::vector<double> LinearSpacedArray(double a, double b, std::size_t N);
+  std::vector<int> odomPosToMapIndex(Ped::Tvector pos);
+  bool isOccupied(Ped::Tvector pos);
+  Ped::Tvector* getClosestObstaclePos(std::vector<Ped::Tvector > considered_positions, Ped::Tvector pos);
+  std::vector<Ped::Tvector > getSurroundingPositions(Ped::Tvector pos);
+  double obstacleForceFunction(double distance);
+
+  int obstacleForceRange;
 
  protected:
   int id;

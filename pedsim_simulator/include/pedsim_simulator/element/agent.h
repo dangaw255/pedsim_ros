@@ -123,7 +123,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   void move(double h);
   Ped::Tvector desiredForce();
   Ped::Tvector socialForce() const;
-  Ped::Tvector obstacleForce() const;
+  Ped::Tvector obstacleForce();
   Ped::Tvector myForce(Ped::Tvector desired) const;
   Ped::Twaypoint* getCurrentWaypoint() const;
   Ped::Twaypoint* updateDestination();
@@ -165,6 +165,8 @@ class Agent : public ScenarioElement, public Ped::Tagent {
 
   // → waypoint planner
   WaypointPlanner* waypointplanner;
+
+  ros::Time last_meet_friends_check_;
 };
 
 #endif

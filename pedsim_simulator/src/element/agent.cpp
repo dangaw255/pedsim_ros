@@ -56,6 +56,7 @@ Agent::Agent(int id, std::string name) {
   name_ = name;
   destination_index_ = 0;
   talking_to_id_ = -1;
+  last_meet_friends_check_ = ros::Time::now();
 }
 
 Agent::~Agent() {
@@ -89,7 +90,7 @@ Ped::Tvector Agent::socialForce() const {
 
 /// Calculates the obstacle force. Same as in lib, but adds graphical
 /// representation
-Ped::Tvector Agent::obstacleForce() const {
+Ped::Tvector Agent::obstacleForce() {
   Ped::Tvector force;
   if (!disabledForces.contains("Obstacle")) force = Tagent::obstacleForce();
 
@@ -351,21 +352,30 @@ bool Agent::meetFriends(){
     if (chatter != nullptr) {
       if (chatter->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTalking) {
         if (chatter->talking_to_id_ == this->id_) {
+          // always answer, when someone is talking to this
           return true;
         }
       }
     }
   }
 
-  // start talking sometimes when there is someone near
-  uniform_real_distribution<double> Distribution(0, 1);
-  double possiblityForChatting = Distribution(RNG());
-  if (!potentialChatters.isEmpty()) {
-    if (possiblityForChatting < chatting_probability_) {
-      // start chatting to a random person
-      int idx = std::rand() % potentialChatters.length();
-      this->talking_to_id_ = potentialChatters[idx]->id_;
-      return true;
+  // only do the probability check again after some time has passed
+  ros::Time now = ros::Time::now();
+  if ((now - last_meet_friends_check_).toSec() > 0.5)
+  {
+    // reset timer
+    last_meet_friends_check_ = ros::Time::now();
+
+    // start talking sometimes when there is someone near
+    uniform_real_distribution<double> Distribution(0, 1);
+    double possiblityForChatting = Distribution(RNG());
+    if (!potentialChatters.isEmpty()) {
+      if (possiblityForChatting < chatting_probability_) {
+        // start chatting to a random person
+        int idx = std::rand() % potentialChatters.length();
+        this->talking_to_id_ = potentialChatters[idx]->id_;
+        return true;
+      }
     }
   }
 

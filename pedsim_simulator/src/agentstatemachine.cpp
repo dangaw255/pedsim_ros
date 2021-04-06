@@ -220,6 +220,7 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       individualPlanner->setAgent(agent);
       individualPlanner->setDestination(destination);
       agent->setWaypointPlanner(individualPlanner);
+      agent->enableAllForces();
       break;
     case StateQueueing:
       if (queueingPlanner == nullptr)
@@ -267,6 +268,7 @@ void AgentStateMachine::activateState(AgentState stateIn) {
     case StateWorking:
       startWorkingTimestamp = ros::WallTime::now();
       agent->setWaypointPlanner(nullptr);
+      agent->disableForce("Obstacle");
       break;
   }
 
