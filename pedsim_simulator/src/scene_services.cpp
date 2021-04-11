@@ -105,7 +105,7 @@ std::vector<std::string> SceneServices::removePedsInPedsim(){
       SCENE.removeWaypoint(w);
     }
     SCENE.removeAgent(a);
-    flatland_model_names.push_back(a->name_);
+    flatland_model_names.push_back(a->agentName);
   }
 
   AgentCluster::lastID = 0;

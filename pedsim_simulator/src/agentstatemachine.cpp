@@ -55,6 +55,13 @@ AgentStateMachine::AgentStateMachine(Agent* agentIn) {
   shallLoseAttraction = false;
   // initialize state machine
   state = StateNone;
+  stateTalkingBaseTime = 6.0;
+  stateWorkingBaseTime = 6.0;
+  stateLiftingForksBaseTime = 6.0;
+  stateLoadingBaseTime = 6.0;
+  stateLoweringForksBaseTime = 6.0;
+  stateTellStoryBaseTime = 6.0;
+  stateGroupTalkingBaseTime = 12.0;
 }
 
 AgentStateMachine::~AgentStateMachine() {
@@ -112,6 +119,8 @@ void AgentStateMachine::doStateTransition() {
       }
     }
   }
+
+
   // → randomly lose attraction
   if (state == StateShopping) {
     // check whether agent loses attraction
@@ -129,6 +138,7 @@ void AgentStateMachine::doStateTransition() {
     }
   }
 
+
   // → operate on waypoints/destinations
   if (state == StateNone) {
     Ped::Twaypoint* destination = agent->updateDestination();
@@ -138,52 +148,139 @@ void AgentStateMachine::doStateTransition() {
       activateState(StateWalking);
   }
 
+
+  // → update destination on arrival
   if (agent->hasCompletedDestination()) {
     agent->updateDestination();
-    activateState(StateWorking);    
+    // start working if vehicle
+    if (agent->getType() == Ped::Tagent::AgentType::VEHICLE)
+    {
+      activateState(StateWorking);
+      return;
+    } else {
+      activateState(StateWalking);
+      return;
+    }
   }
 
-  // do work
+
+  // → do work
   if (state == StateWorking)
   {
-    ros::WallDuration diff = ros::WallTime::now() - startWorkingTimestamp ;
-
-    // if (diff.toSec() < 2.0)
-    // {
-    //   // publish state going up
-    //   // ROS_INFO("going up");
-    // }
-    // else if (2.0 <= diff.toSec() && diff.toSec() <= 5.0)
-    // {
-    //   // publish state loading
-    //   // ROS_INFO("loading");
-    // }
-    // else if (5.0 <= diff.toSec() && diff.toSec() <= 7.0)
-    // {
-    //   // publish state going down
-    //   // ROS_INFO("going down");
-    // }
-    // else
-    // {
-    //   // finished work
-    //   activateState(StateWalking);
-    // }
-
-    if (diff.toSec() > 1.0)
-      activateState(StateWalking);
-
+    activateState(StateLiftingForks);
     return;
   }
 
-  // → operate for chatting pattern (6.2.2021 Junhui Li)
-  //a random probability to meet a familiar person and begin chatting
-  if ((state == StateWalking) && agent->meetFriends()) {
+
+  // → lift forks
+  if (state == StateLiftingForks)
+  {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateLoading);
+    }
+    return;
+  }
+
+
+  // → load stuff
+  if (state == StateLoading)
+  {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateLoweringForks);
+    }
+    return;
+  }
+
+
+  // → lower forks
+  if (state == StateLoweringForks)
+  {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateWalking);
+    }
+    return;
+  }
+
+
+  // ## do some checks wether to interrupt walking
+
+  // → start telling a story sometimes
+  if (state == StateWalking && agent->tellStory()) {
+    activateState(StateTellStory);
+    return;
+  }
+
+
+  // → start group talking sometimes
+  if (state == StateWalking && agent->startGroupTalking()) {
+    activateState(StateGroupTalking);
+    return;
+  }
+
+
+  // → check wether someone is talking to me
+  if ((state == StateWalking) && agent->someoneTalkingToMe()) {
+    activateState(StateListening);
+    return;
+  }
+
+
+  // → start talking to someone sometimes
+  if ((state == StateWalking) && agent->startTalking()) {
     activateState(StateTalking);
     return;
   }
 
+
+  // → tell story for some time
+  if (state == StateTellStory) {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateWalking);
+    }
+    return;
+  }
+
+
+  // → talk as a group for some time
+  if (state == StateGroupTalking) {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateWalking);
+    }
+    return;
+  }
+
+
+  // → listening
+  if (state == StateListening) {
+    // check if I am still being talked to
+    if (agent->listeningToAgent != nullptr) {
+      if (
+        agent->listeningToAgent->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTellStory ||
+        agent->listeningToAgent->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateGroupTalking ||
+        agent->listeningToAgent->talkingToId == agent->getId()
+      ) {
+        return;
+      }
+    }
+
+    activateState(StateWalking);
+    return;
+  }
+
+
+  // → talk for some time
   if (state == StateTalking) {
-    ros::WallDuration diff = ros::WallTime::now() - startTalkingTimestamp;
+    ros::WallDuration diff = ros::WallTime::now() - startTimestamp;
     if (diff.toSec() > 6.20) {
       activateState(StateWalking);
       return;
@@ -220,7 +317,7 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       individualPlanner->setAgent(agent);
       individualPlanner->setDestination(destination);
       agent->setWaypointPlanner(individualPlanner);
-      agent->enableAllForces();
+      agent->resumeMovement();
       break;
     case StateQueueing:
       if (queueingPlanner == nullptr)
@@ -235,10 +332,6 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       groupWaypointPlanner->setDestination(destination);
       groupWaypointPlanner->setGroup(agent->getGroup());
       agent->setWaypointPlanner(groupWaypointPlanner);
-      break;
-    case StateTalking:
-      startTalkingTimestamp = ros::WallTime::now();
-      agent->setWaypointPlanner(nullptr);
       break;
     case StateShopping:
       {
@@ -265,10 +358,52 @@ void AgentStateMachine::activateState(AgentState stateIn) {
         }
       }
       break;
-    case StateWorking:
-      startWorkingTimestamp = ros::WallTime::now();
+    case StateTalking:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateTalkingBaseTime);
       agent->setWaypointPlanner(nullptr);
-      agent->disableForce("Obstacle");
+      agent->stopMovement();
+      break;
+    case StateWorking:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateWorkingBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->stopMovement();
+      break;
+    case StateLiftingForks:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateLiftingForksBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->stopMovement();
+      break;
+    case StateLoading:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateLoadingBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->stopMovement();
+      break;
+    case StateLoweringForks:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateLoweringForksBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->stopMovement();
+      break;
+    case StateTellStory:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateTellStoryBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->stopMovement();
+      break;
+    case StateGroupTalking:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateGroupTalkingBaseTime);
+      agent->setWaypointPlanner(nullptr);
+      agent->enableForce("KeepDistance");
+      break;
+    case StateListening:
+      agent->setWaypointPlanner(nullptr);
+      agent->enableForce("KeepDistance");
+      agent->setForceFactorSocial(50.0);
       break;
   }
 
@@ -278,26 +413,18 @@ void AgentStateMachine::activateState(AgentState stateIn) {
 
 void AgentStateMachine::deactivateState(AgentState state) {
   switch (state) {
-    case StateNone:
-      // nothing to do
-      break;
-    case StateWaiting:
-      // nothing to do
-      break;
-    case StateWalking:
-      // nothing to do
-      break;
     case StateTalking:
       // reset talking to id
-      agent->talking_to_id_ = -1;
+      agent->talkingToId = -1;
       break;
-    case StateQueueing:
-      // nothing to do
-      break;
-    case StateGroupWalking:
-      // nothing to do
+    case StateListening:
+      // reset listening to id
+      agent->listeningToId = -1;
+      agent->listeningToAgent = nullptr;
+      agent->setForceFactorSocial(2.0);
       break;
     case StateShopping:
+    {
       // inform other group members
       shoppingPlanner->loseAttraction();
 
@@ -314,7 +441,18 @@ void AgentStateMachine::deactivateState(AgentState state) {
       }
 
       break;
+    }
+    default:
+      break;
   }
+}
+
+double AgentStateMachine::getRandomDuration(double baseTime)
+{
+  uniform_real_distribution<double> Distribution(0.5, 1.5);
+  double durationFactor = Distribution(RNG());
+  double duration = durationFactor * baseTime;
+  return duration;
 }
 
 bool AgentStateMachine::checkGroupForAttractions(
@@ -350,24 +488,36 @@ bool AgentStateMachine::checkGroupForAttractions(
   return false;
 }
 
-QString AgentStateMachine::stateToName(AgentState stateIn) const {
+QString AgentStateMachine::stateToName(AgentState stateIn) {
   switch (stateIn) {
     case StateNone:
-      return "StateNone";
+      return "None";
     case StateWaiting:
-      return "StateWaiting";
+      return "Waiting";
     case StateWalking:
-      return "StateWalking";
+      return "Walking";
     case StateQueueing:
-      return "StateQueueing";
+      return "Queueing";
     case StateGroupWalking:
-      return "StateGroupWalking";
+      return "GroupWalking";
     case StateTalking:
-      return "StateTalking";
+      return "Talking";
     case StateShopping:
-      return "StateShopping";
+      return "Shopping";
     case StateWorking:
-      return "StateWorking";
+      return "Working";
+    case StateLiftingForks:
+      return "LiftingForks";
+    case StateLoading:
+      return "Loading";
+    case StateLoweringForks:
+      return "LoweringForks";
+    case StateTellStory:
+      return "TellStory";
+    case StateGroupTalking:
+      return "GroupTalking";
+    case StateListening:
+      return "Listening";
     default:
       return "UnknownState";
   }

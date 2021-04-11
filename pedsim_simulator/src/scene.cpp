@@ -175,6 +175,15 @@ QRectF Scene::itemsBoundingRect() const {
 
 const QList<Agent*>& Scene::getAgents() const { return agents; }
 
+Agent* Scene::getAgent(int id) const {
+  for (Agent* agent : agents) {
+    if (agent->getId() == id) {
+      return agent;
+    }
+  }
+  return nullptr;
+}
+
 QList<AgentGroup*> Scene::getGroups() { return agentGroups; }
 
 QMap<QString, AttractionArea*> Scene::getAttractions() { return attractions; }

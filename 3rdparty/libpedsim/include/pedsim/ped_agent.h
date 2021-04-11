@@ -46,10 +46,10 @@ class LIBEXPORT Tagent {
  public:
   enum AgentType {
     ADULT = 0,
-    CHILD = 1,
-    ROBOT = 2,
-    ELDER = 3,
-    VEHICLE = 4,
+    ELDER = 1,
+    CHILD = 2,
+    VEHICLE = 3,
+    ROBOT = 4,
     ADULT_AVOID_ROBOT = 10,
     ADULT_AVOID_ROBOT_REACTION_TIME = 11};
 
@@ -59,11 +59,13 @@ class LIBEXPORT Tagent {
   virtual void updateState(){};
   virtual void computeForces();
   virtual void move(double stepSizeIn);
+  virtual double keepDistanceForceFunction(double distance);
+  virtual Tvector keepDistanceForce();
   virtual Tvector desiredForce();
   virtual Tvector robotForce();
   virtual Tvector socialForce() const;
   virtual Tvector obstacleForce();
-  virtual Tvector myForce(Tvector desired) const;
+  virtual Tvector myForce(Tvector desired);
   virtual Twaypoint* getCurrentWaypoint() const = 0;
 
   virtual void setPosition(double px, double py, double pz = 0);
@@ -100,10 +102,12 @@ class LIBEXPORT Tagent {
   void setvx(double vv) { v.x = vv; }
   void setvy(double vv) { v.y = vv; }
 
+  void setv(Tvector vIn) { v = vIn; }
+  void seta(Tvector aIn) { a = aIn; }
+
   virtual void setForceFactorDesired(double f);
   virtual void setForceFactorSocial(double f);
   virtual void setForceFactorObstacle(double f);
-
 
   void assignScene(Tscene* sceneIn);
   void removeAgentFromNeighbors(const Tagent* agentIn);
@@ -116,6 +120,8 @@ class LIBEXPORT Tagent {
   double obstacleForceFunction(double distance);
 
   int obstacleForceRange;
+  double keepDistanceForceDistance;
+  Tvector keepDistanceTo;
 
  protected:
   int id;
@@ -141,13 +147,13 @@ class LIBEXPORT Tagent {
 
   Ped::Tvector desiredDirection;
   set<const Ped::Tagent*> neighbors;
-  // set<const Ped::Tagent*> chatters;
 
   Ped::Tvector desiredforce;
   Ped::Tvector socialforce;
   Ped::Tvector obstacleforce;
   Ped::Tvector robotforce;
   Ped::Tvector myforce;
+  Ped::Tvector keepdistanceforce;
 };
 }
 #endif

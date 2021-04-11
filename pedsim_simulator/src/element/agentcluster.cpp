@@ -85,12 +85,12 @@ QList<Agent*> AgentCluster::dissolve() {
     if (distribution.width() != 0) randomizedX += randomX(RNG());
     if (distribution.height() != 0) randomizedY += randomY(RNG());
     a->setPosition(randomizedX, randomizedY);
-    a->initial_pos_x_ = randomizedX;
-    a->initial_pos_y_ = randomizedY;
+    a->initialPosX = randomizedX;
+    a->initialPosY = randomizedY;
     a->setType(agentType);
     a->setVmax(vmax);
-    a->chatting_probability_ = chatting_probability;
-    a->waypoint_mode_ = waypoint_mode;
+    a->chattingProbability = chatting_probability;
+    a->waypointMode = waypoint_mode;
     a->setForceFactorDesired(forceFactorDesired);
     a->setForceFactorSocial(forceFactorSocial);
     a->setForceFactorObstacle(forceFactorObstacle);

@@ -45,6 +45,9 @@ Ped::Tagent::Tagent() {
   relaxationTime = 0.5;
   robotPosDiffScalingFactor = 5;
   obstacleForceRange = 2.0;
+
+  keepDistanceForceDistance = 1.0;
+  keepDistanceTo = Tvector(0.0, 0.0);
 }
 
 /// Destructor
@@ -106,6 +109,19 @@ void Ped::Tagent::setForceFactorSocial(double f) { forceFactorSocial = f; }
 /// and about 10 do make sense.
 /// \param   f The factor
 void Ped::Tagent::setForceFactorObstacle(double f) { forceFactorObstacle = f; }
+
+double Ped::Tagent::keepDistanceForceFunction(double distance) {
+  return -10 * (distance - keepDistanceForceDistance);
+}
+
+// force to keep a specific distance
+Ped::Tvector Ped::Tagent::keepDistanceForce() {
+  Tvector diff = p - keepDistanceTo;
+  Tvector direction = diff.normalized();
+  double magnitude = keepDistanceForceFunction(diff.length());
+  Tvector force = direction * magnitude;
+  return force;
+}
 
 /// Calculates the force between this agent and the next assigned waypoint.
 /// If the waypoint has been reached, the next waypoint in the list will be
@@ -362,8 +378,8 @@ Ped::Tvector Ped::Tagent::obstacleForce() {
 /// \return  Tvector: the calculated force
 /// \param   e is a vector defining the direction in which the agent wants to
 /// walk to.
-Ped::Tvector Ped::Tagent::myForce(Ped::Tvector e) const {
-  return Ped::Tvector();
+Ped::Tvector Ped::Tagent::myForce(Ped::Tvector e) {
+  return Ped::Tvector(0.0, 0.0);
 }
 
 void Ped::Tagent::computeForces() {
@@ -377,6 +393,7 @@ void Ped::Tagent::computeForces() {
   if (forceFactorSocial > 0) socialforce = socialForce();
   if (forceFactorObstacle > 0) obstacleforce = obstacleForce();
   robotforce = robotForce();
+  keepdistanceforce = keepDistanceForce();
   myforce = myForce(desiredDirection);
 }
 
@@ -392,12 +409,13 @@ void Ped::Tagent::move(double stepSizeIn) {
 
   // sum of all forces --> acceleration
   a = forceFactorDesired * desiredforce + forceFactorSocial * socialforce 
-    + forceFactorObstacle * obstacleforce + myforce;
+    + forceFactorObstacle * obstacleforce + myforce + keepdistanceforce;
     // ROS_INFO("desiredforce: %lf,%lf,%lf  factor: %lf", desiredforce.x, desiredforce.y, desiredforce.z, forceFactorDesired);
     // ROS_INFO("socialforce, %lf,%lf,%lf",socialforce.x,socialforce.y,socialforce.z);
     // ROS_INFO("obstacleforce,%lf,%lf,%lf",obstacleforce.x,obstacleforce.y,obstacleforce.z);
     // ROS_INFO("myforce, %lf,%lf,%lf",myforce.x,myforce.y,myforce.z);
     // ROS_INFO("stepSizeln%lf",stepSizeIn);
+    // if (id == 0) ROS_INFO("KDF: %lf", keepdistanceforce.length());
 
   // Added by Ronja Gueldenring
   // add robot force, so that pedestrians avoid robot

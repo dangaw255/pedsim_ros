@@ -362,9 +362,6 @@ void Simulator::publishAgents() {
 
     AgentStateMachine::AgentState sc = a->getStateMachine()->getCurrentState();
     state.social_state = agentStateToActivity(sc);
-    if (a->getType() == Ped::Tagent::ELDER) {
-      state.social_state = pedsim_msgs::AgentState::TYPE_STANDING;
-    }
 
     // Skip robot.
     if (a->getType() == Ped::Tagent::ROBOT) {
@@ -383,7 +380,12 @@ void Simulator::publishAgents() {
 
     state.forces = agent_forces;
 
-    state.talking_to_id = a->talking_to_id_;
+    state.talking_to_id = a->talkingToId;
+    state.listening_to_id = a->listeningToId;
+
+    state.acceleration = VecToMsg(a->getAcceleration());
+    state.direction = VecToMsg(a->facingDirection);
+
 
     all_status.agent_states.push_back(state);
     // ROS_WARN("publish agent states %d,%lf, typeID,%d",state.id,state.twist.linear.x,state.type);
@@ -458,30 +460,7 @@ void Simulator::publishWaypoints() {
 
 std::string Simulator::agentStateToActivity(
     const AgentStateMachine::AgentState& state) const {
-  std::string activity = "Unknown";
-  switch (state) {
-    case AgentStateMachine::AgentState::StateWalking:
-      activity = pedsim_msgs::AgentState::TYPE_INDIVIDUAL_MOVING;
-      break;
-    case AgentStateMachine::AgentState::StateGroupWalking:
-      activity = pedsim_msgs::AgentState::TYPE_GROUP_MOVING;
-      break;
-    case AgentStateMachine::AgentState::StateTalking:
-      activity = pedsim_msgs::AgentState::TYPE_TALKING;
-      break;
-    case AgentStateMachine::AgentState::StateQueueing:
-      activity = pedsim_msgs::AgentState::TYPE_WAITING_IN_QUEUE;
-      break;
-    case AgentStateMachine::AgentState::StateWorking:
-      activity = pedsim_msgs::AgentState::TYPE_WORKING;
-      break;
-    case AgentStateMachine::AgentState::StateShopping:
-      break;
-    case AgentStateMachine::AgentState::StateNone:
-      break;
-    case AgentStateMachine::AgentState::StateWaiting:
-      break;
-  }
+  std::string activity = AgentStateMachine::stateToName(state).toStdString();
   return activity;
 }
 

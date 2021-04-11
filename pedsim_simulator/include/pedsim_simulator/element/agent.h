@@ -53,13 +53,13 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   // Constructor and Destructor
  public:
   Agent(int id, std::string name);
+  Agent(const Agent&);
   virtual ~Agent();
 
   enum WaypointMode {
     LOOP = 0,
     RANDOM = 1
   };
-
 
   // Signals
  signals:
@@ -76,54 +76,15 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   void forceAdded(QString name);
   void forceRemoved(QString name);
 
-  // Methods
  public:
-  // → waypoints
-  const QList<Waypoint*>& getWaypoints() const;
-  bool setWaypoints(const QList<Waypoint*>& waypointsIn);
-  bool addWaypoint(Waypoint* waypointIn);
-  bool removeWaypoint(Waypoint* waypointIn);
-
-  Ped::Twaypoint* getCurrentDestination() const;
-  bool needNewDestination() const;
-  bool hasCompletedDestination() const;
-
-  // → group
-  bool isInGroup() const;
-  AgentGroup* getGroup() const;
-  void setGroup(AgentGroup* groupIn);
-
-  // → forces
-  bool addForce(Force* forceIn);
-  bool removeForce(Force* forceIn);
-
-  // → waypoint planner
-  AgentStateMachine* getStateMachine() const;
-
-  // → waypoint planner
-  WaypointPlanner* getWaypointPlanner() const;
-  void setWaypointPlanner(WaypointPlanner* plannerIn);
-
-  // → direction, forces, neighbors,chatters
- public:
-  Ped::Tvector getDesiredDirection() const;
-  Ped::Tvector getWalkingDirection() const;
-  Ped::Tvector getSocialForce() const;
-  Ped::Tvector getObstacleForce() const;
-  Ped::Tvector getMyForce() const;
-  QList<const Agent*> getNeighbors() const;
-  QList<const Agent*> getPotentialChatters(double chattingDist) const; 
-  void disableForce(const QString& forceNameIn);
-  void enableAllForces();
-  bool meetFriends();
-
   // → Ped::Tagent Overrides/Overloads
- public:
   void updateState();
+  void updateDirection();
   void move(double h);
   Ped::Tvector desiredForce();
   Ped::Tvector socialForce() const;
   Ped::Tvector obstacleForce();
+  Ped::Tvector keepDistanceForce();
   Ped::Tvector myForce(Ped::Tvector desired) const;
   Ped::Twaypoint* getCurrentWaypoint() const;
   Ped::Twaypoint* updateDestination();
@@ -133,40 +94,76 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   void setType(Ped::Tagent::AgentType typeIn);
 
   // → VisibleScenarioElement Overrides/Overloads
- public:
   virtual QPointF getVisiblePosition() const;
   virtual void setVisiblePosition(const QPointF& positionIn);
   QString toString() const;
   void reset();
-  int id_;
-  std::string name_;
+
+  // get, set, add, remove
+  const QList<Waypoint*>& getWaypoints() const;
+  bool setWaypoints(const QList<Waypoint*>& waypointsIn);
+  bool addWaypoint(Waypoint* waypointIn);
+  bool removeWaypoint(Waypoint* waypointIn);
+  WaypointPlanner* getWaypointPlanner() const;
+  void setWaypointPlanner(WaypointPlanner* plannerIn);
+  Ped::Twaypoint* getCurrentDestination() const;
+  AgentGroup* getGroup() const;
+  void setGroup(AgentGroup* groupIn);
+  bool addForce(Force* forceIn);
+  bool removeForce(Force* forceIn);
+  AgentStateMachine* getStateMachine() const;
+  Ped::Tvector getDesiredDirection() const;
+  Ped::Tvector getWalkingDirection() const;
+  Ped::Tvector getSocialForce() const;
+  Ped::Tvector getObstacleForce() const;
+  Ped::Tvector getMyForce() const;
+  QList<const Agent*> getNeighbors() const;
+  QList<const Agent*> getAgentsInRange(double distance);
+
+  // checks
+  bool needNewDestination() const;
+  bool hasCompletedDestination() const;
+  bool isInGroup() const;
+  bool someoneTalkingToMe();
+  bool tellStory();
+  bool startGroupTalking();
+  bool startTalking();
+
+  // misc
+  void disableForce(const QString& forceNameIn);
+  void enableForce(const QString& forceNameIn);
+  void enableAllForces();
+  void disableAllForces();
+  void resumeMovement();
+  void stopMovement();
+
+  std::string agentName;
   QList<Waypoint*> destinations;
-  int destination_index_;
-  double initial_pos_x_;
-  double initial_pos_y_;
-  int talking_to_id_;
-  double chatting_probability_;
-  WaypointMode waypoint_mode_;
+  int destinationIndex;
+  double initialPosX;
+  double initialPosY;
+  int talkingToId;
+  int listeningToId;
+  Agent* listeningToAgent;
+  double chattingProbability;
+  double tellStoryProbability;
+  double groupTalkingProbability;
+  WaypointMode waypointMode;
+  double maxTalkingDistance;
+  // direction the agent is facing on a "higher" level, is dependent on current state, should always have length 1
+  Ped::Tvector facingDirection;
 
-  // Attributes
+
  protected:
-  // → state machine
   AgentStateMachine* stateMachine;
-
-  // → waypoints
   Waypoint* currentDestination;
-
-  // → group
   AgentGroup* group;
-
-  // → force
   QList<Force*> forces;
   QStringList disabledForces;
-
-  // → waypoint planner
   WaypointPlanner* waypointplanner;
-
-  ros::Time last_meet_friends_check_;
+  ros::Time lastTellStoryCheck;
+  ros::Time lastStartTalkingCheck;
+  ros::Time lastGroupTalkingCheck;
 };
 
 #endif
