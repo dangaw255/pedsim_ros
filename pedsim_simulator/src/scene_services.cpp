@@ -22,7 +22,6 @@ int SceneServices::agents_index_ = 0;
 SceneServices::SceneServices() {
   //Pedsim service
   spawn_peds_service_ = nh_.advertiseService("pedsim_simulator/spawn_peds", &SceneServices::spawnPeds, this);
-  remove_all_peds_service_ = nh_.advertiseService("pedsim_simulator/remove_all_peds", &SceneServices::removeAllPeds, this);
   reset_peds_service_ = nh_.advertiseService("pedsim_simulator/reset_all_peds", &SceneServices::resetPeds, this);
   
   //flatland service clients
@@ -67,53 +66,6 @@ bool SceneServices::spawnPeds(pedsim_srvs::SpawnPeds::Request &request, pedsim_s
 }
 
 
-bool SceneServices::removeAllPeds(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response) {
-  flatland_msgs::DeleteModels srv;
-
-  // remove peds and get flatland model names
-  srv.request.name = removePedsInPedsim();
-
-  // Deleting pedestrian in flatland
-  // make sure client is valid
-  while (!delete_models_client_.isValid()) {
-    ROS_WARN("Reconnecting delete_models service....");
-    delete_models_client_.waitForExistence(ros::Duration(5.0));
-    delete_models_client_ = nh_.serviceClient<flatland_msgs::DeleteModels>(delete_models_service_name_, true);
-  }
-
-  // call delete_models service
-  delete_models_client_.call(srv);
-  if (!srv.response.success) {
-    ROS_ERROR("Failed to delete %ld agents. Maybe a few were deleted.", srv.request.name.size());
-  }
-
-  response.success = true;
-  return true;
-}
-
-
-std::vector<std::string> SceneServices::removePedsInPedsim(){
-  //Remove all agents
-  QList<Agent*> agents = SCENE.getAgents();
-
-  std::vector<std::string> flatland_model_names;
-  for (Agent* a : agents)
-  {
-    // Deleting pedestrian and waypoints in SCENE
-    for (Waypoint* w : a->getWaypoints())
-    {
-      SCENE.removeWaypoint(w);
-    }
-    SCENE.removeAgent(a);
-    flatland_model_names.push_back(a->agentName);
-  }
-
-  AgentCluster::lastID = 0;
-
-  return flatland_model_names;
-}
-
-
 bool SceneServices::resetPeds(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response) {
   if (request.data)
   {
@@ -145,9 +97,23 @@ AgentCluster* SceneServices::addAgentClusterToPedsim(pedsim_msgs::Ped ped) {
   const int type = ped.type;
   agentCluster->setType(static_cast<Ped::Tagent::AgentType>(type));
 
+  // set vmax
   agentCluster->vmax = ped.vmax;
-  agentCluster->chatting_probability = ped.chatting_probability;
 
+  // set action probabilities
+  agentCluster->chattingProbability = ped.chatting_probability;
+  agentCluster->tellStoryProbability = ped.tell_story_probability;
+  agentCluster->groupTalkingProbability = ped.group_talking_probability;
+  agentCluster->talkingAndWalkingProbability = ped.talking_and_walking_probability;
+  agentCluster->stateTalkingBaseTime = ped.talking_base_time;
+  agentCluster->stateTellStoryBaseTime = ped.tell_story_base_time;
+  agentCluster->stateGroupTalkingBaseTime = ped.group_talking_base_time;
+  agentCluster->stateTalkingAndWalkingBaseTime = ped.talking_and_walking_base_time;
+
+  // set max talking distance
+  agentCluster->maxTalkingDistance = ped.max_talking_distance;
+
+  // set waypoint mode
   int waypoint_mode = ped.waypoint_mode;
   agentCluster->waypoint_mode = static_cast<Agent::WaypointMode>(waypoint_mode);
 

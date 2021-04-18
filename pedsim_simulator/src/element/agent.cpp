@@ -59,10 +59,12 @@ Agent::Agent(int id, std::string name) {
   listeningToId = -1;
   lastTellStoryCheck = ros::Time::now();
   lastStartTalkingCheck = ros::Time::now();
+  lastStartTalkingAndWalkingCheck = ros::Time::now();
   lastGroupTalkingCheck = ros::Time::now();
   maxTalkingDistance = 1.5;
-  tellStoryProbability = 0.01;
-  groupTalkingProbability = 0.01;
+  tellStoryProbability = 0.0001;
+  groupTalkingProbability = 0.0001;
+  talkingAndWalkingProbability = 0.01;
   disableForce("KeepDistance");
 }
 
@@ -245,7 +247,22 @@ void Agent::move(double h) {
       Ped::Tagent::move(h);
     }
   } else {
-    Ped::Tagent::move(h);
+    // special case for listening and walking
+    if (stateMachine->getCurrentState() == AgentStateMachine::AgentState::StateListeningAndWalking) {
+      // simulate movement by always placing the agent next to listeningToAgent
+      Ped::Tvector neighbor_v = listeningToAgent->getVelocity();
+      double angle = 0.5 * M_PI;
+      Ped::Tvector neighbor_v_rotated = neighbor_v.x * Ped::Tvector(cos(angle), sin(angle)) + neighbor_v.y * Ped::Tvector(-1 * sin(angle), cos(angle));
+      neighbor_v_rotated.normalize();
+      // double default_listening_and_talking_distance = 0.8;
+      // set new position every tick instead of "normal" movement
+      p = listeningToAgent->getPosition() + (keepDistanceForceDistanceDefault * neighbor_v_rotated);
+      // copy v from neighbor
+      v = neighbor_v;
+    } else {
+      // normal movement
+      Ped::Tagent::move(h);
+    }
     updateDirection();
   }
 
@@ -381,9 +398,9 @@ bool Agent::someoneTalkingToMe() {
       listeningToId = neighbor->getId();
       listeningToAgent = SCENE.getAgent(neighbor->getId());
       keepDistanceTo = listeningToAgent->getPosition();
+      keepDistanceForceDistance = keepDistanceForceDistanceDefault;
       return true;
-    }
-     else if (
+    } else if (
       neighbor->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateGroupTalking
     ) {
       // neighbor started a group talk
@@ -391,6 +408,15 @@ bool Agent::someoneTalkingToMe() {
       listeningToAgent = SCENE.getAgent(neighbor->getId());
       // copy talking center from neighbor
       keepDistanceTo = neighbor->keepDistanceTo;
+      keepDistanceForceDistance = keepDistanceForceDistanceDefault;
+      return true;
+    } else if (
+      neighbor->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTalkingAndWalking && 
+      neighbor->talkingToId == id
+    ) {
+      // neighbor talks to me while walking
+      listeningToId = neighbor->getId();
+      listeningToAgent = SCENE.getAgent(neighbor->getId());
       return true;
     }
   }
@@ -474,6 +500,32 @@ bool Agent::startTalking(){
       uniform_real_distribution<double> Distribution(0, 1);
       double roll = Distribution(RNG());
       if (roll < chattingProbability) {
+        // start chatting to a random person in range
+        int idx = std::rand() % potentialChatters.length();
+        this->talkingToId = potentialChatters[idx]->getId();
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+
+bool Agent::startTalkingAndWalking(){
+  // only do the probability check again after some time has passed
+  ros::Time now = ros::Time::now();
+  if ((now - lastStartTalkingAndWalkingCheck).toSec() > 0.5) {
+    // reset timer
+    lastStartTalkingAndWalkingCheck = ros::Time::now();
+
+    // start talking sometimes when there is someone near
+    QList<const Agent*> potentialChatters = getAgentsInRange(maxTalkingDistance);
+    if (!potentialChatters.isEmpty()) {
+      // roll a dice
+      uniform_real_distribution<double> Distribution(0, 1);
+      double roll = Distribution(RNG());
+      if (roll < talkingAndWalkingProbability) {
         // start chatting to a random person in range
         int idx = std::rand() % potentialChatters.length();
         this->talkingToId = potentialChatters[idx]->getId();

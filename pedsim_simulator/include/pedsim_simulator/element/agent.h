@@ -128,6 +128,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   bool tellStory();
   bool startGroupTalking();
   bool startTalking();
+  bool startTalkingAndWalking();
 
   // misc
   void disableForce(const QString& forceNameIn);
@@ -148,21 +149,23 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   double chattingProbability;
   double tellStoryProbability;
   double groupTalkingProbability;
+  double talkingAndWalkingProbability;
   WaypointMode waypointMode;
   double maxTalkingDistance;
   // direction the agent is facing on a "higher" level, is dependent on current state, should always have length 1
   Ped::Tvector facingDirection;
+  Waypoint* currentDestination;
+  AgentStateMachine* stateMachine;
 
 
  protected:
-  AgentStateMachine* stateMachine;
-  Waypoint* currentDestination;
   AgentGroup* group;
   QList<Force*> forces;
   QStringList disabledForces;
   WaypointPlanner* waypointplanner;
   ros::Time lastTellStoryCheck;
   ros::Time lastStartTalkingCheck;
+  ros::Time lastStartTalkingAndWalkingCheck;
   ros::Time lastGroupTalkingCheck;
 };
 

@@ -121,7 +121,9 @@ class LIBEXPORT Tagent {
 
   int obstacleForceRange;
   double keepDistanceForceDistance;
+  double keepDistanceForceDistanceDefault;
   Tvector keepDistanceTo;
+  double vmaxDefault;
 
  protected:
   int id;

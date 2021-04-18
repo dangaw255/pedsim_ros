@@ -35,6 +35,7 @@ Ped::Tagent::Tagent() {
   // assign random maximal speed in m/s
   normal_distribution<double> distribution(0.6, 0.2);
   vmax = distribution(generator);
+  vmaxDefault = vmax;
   forceFactorDesired = 1.0;
   forceFactorSocial = 2.1;
   forceFactorObstacle = 10.0;
@@ -46,7 +47,8 @@ Ped::Tagent::Tagent() {
   robotPosDiffScalingFactor = 5;
   obstacleForceRange = 2.0;
 
-  keepDistanceForceDistance = 1.0;
+  keepDistanceForceDistanceDefault = 0.8;
+  keepDistanceForceDistance = keepDistanceForceDistanceDefault;
   keepDistanceTo = Tvector(0.0, 0.0);
 }
 

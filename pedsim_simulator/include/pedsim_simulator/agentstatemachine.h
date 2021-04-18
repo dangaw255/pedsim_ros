@@ -63,7 +63,9 @@ class AgentStateMachine : public QObject {
     StateLoweringForks = 10,
     StateTellStory = 11,
     StateGroupTalking = 12,
-    StateListening = 13
+    StateListening = 13,
+    StateTalkingAndWalking = 14,
+    StateListeningAndWalking = 15
   } AgentState;
 
   // Constructor and Destructor
@@ -84,6 +86,15 @@ class AgentStateMachine : public QObject {
   void activateState(AgentState stateIn);
   static QString stateToName(AgentState stateIn);
 
+  double stateWorkingBaseTime;  // in seconds
+  double stateLiftingForksBaseTime;  // in seconds
+  double stateLoadingBaseTime;  // in seconds
+  double stateLoweringForksBaseTime;  // in seconds
+  double stateTalkingBaseTime;  // in seconds
+  double stateTellStoryBaseTime;  // in seconds
+  double stateGroupTalkingBaseTime;  // in seconds
+  double stateTalkingAndWalkingBaseTime;  // in seconds
+  
  protected:
   void deactivateState(AgentState stateIn);
   bool checkGroupForAttractions(AttractionArea** attractionOut = nullptr) const;
@@ -108,13 +119,6 @@ class AgentStateMachine : public QObject {
   ros::WallTime startTimestamp;
   double stateMaxDuration;  // in seconds
 
-  double stateTalkingBaseTime;  // in seconds
-  double stateWorkingBaseTime;  // in seconds
-  double stateLiftingForksBaseTime;  // in seconds
-  double stateLoadingBaseTime;  // in seconds
-  double stateLoweringForksBaseTime;  // in seconds
-  double stateTellStoryBaseTime;  // in seconds
-  double stateGroupTalkingBaseTime;  // in seconds
 };
 
 #endif

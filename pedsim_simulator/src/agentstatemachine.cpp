@@ -62,6 +62,7 @@ AgentStateMachine::AgentStateMachine(Agent* agentIn) {
   stateLoweringForksBaseTime = 6.0;
   stateTellStoryBaseTime = 6.0;
   stateGroupTalkingBaseTime = 12.0;
+  stateTalkingAndWalkingBaseTime = 12.0;
 }
 
 AgentStateMachine::~AgentStateMachine() {
@@ -226,7 +227,11 @@ void AgentStateMachine::doStateTransition() {
 
   // → check wether someone is talking to me
   if ((state == StateWalking) && agent->someoneTalkingToMe()) {
-    activateState(StateListening);
+    if (agent->listeningToAgent->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTalkingAndWalking) {
+      activateState(StateListeningAndWalking);
+    } else {
+      activateState(StateListening);
+    }
     return;
   }
 
@@ -234,6 +239,24 @@ void AgentStateMachine::doStateTransition() {
   // → start talking to someone sometimes
   if ((state == StateWalking) && agent->startTalking()) {
     activateState(StateTalking);
+    return;
+  }
+
+
+  // → start talking to someone while walking sometimes
+  if ((state == StateWalking) && agent->startTalkingAndWalking()) {
+    activateState(StateTalkingAndWalking);
+    return;
+  }
+
+
+  // → talk and walk for some time
+  if (state == StateTalkingAndWalking) {
+    ros::WallDuration timePassed = ros::WallTime::now() - startTimestamp;
+    if (timePassed.toSec() > stateMaxDuration)
+    {
+      activateState(StateWalking);
+    }
     return;
   }
 
@@ -259,6 +282,22 @@ void AgentStateMachine::doStateTransition() {
     return;
   }
 
+
+  // → listening while walking
+  if (state == StateListeningAndWalking) {
+    // check if I am still being talked to
+    if (agent->listeningToAgent != nullptr) {
+      if (
+        agent->listeningToAgent->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateTalkingAndWalking
+      ) {
+        // agent->listenAndWalk();
+        return;
+      }
+    }
+
+    activateState(StateWalking);
+    return;
+  }
 
   // → listening
   if (state == StateListening) {
@@ -289,8 +328,7 @@ void AgentStateMachine::doStateTransition() {
 }
 
 void AgentStateMachine::activateState(AgentState stateIn) {
-  ROS_DEBUG("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(),
-            stateToName(stateIn).toStdString().c_str(), SCENE.getTime());
+  // ROS_INFO("Agent %d type %d activating state '%s' (time: %f)", agent->getId(), agent->getType(), stateToName(stateIn).toStdString().c_str(), SCENE.getTime());
 
   // de-activate old state
   deactivateState(state);
@@ -318,6 +356,7 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       individualPlanner->setDestination(destination);
       agent->setWaypointPlanner(individualPlanner);
       agent->resumeMovement();
+      agent->setVmax(agent->vmaxDefault);
       break;
     case StateQueueing:
       if (queueingPlanner == nullptr)
@@ -363,6 +402,21 @@ void AgentStateMachine::activateState(AgentState stateIn) {
       stateMaxDuration = getRandomDuration(stateTalkingBaseTime);
       agent->setWaypointPlanner(nullptr);
       agent->stopMovement();
+      break;
+    case StateTalkingAndWalking:
+      startTimestamp = ros::WallTime::now();
+      stateMaxDuration = getRandomDuration(stateTalkingAndWalkingBaseTime);
+      if (individualPlanner == nullptr){
+        individualPlanner = new IndividualWaypointPlanner();
+      }
+      individualPlanner->setAgent(agent);
+      individualPlanner->setDestination(destination);
+      agent->setWaypointPlanner(individualPlanner);
+      agent->resumeMovement();
+      agent->setVmax(agent->vmaxDefault * 0.3);  // walk slower when talking
+      break;
+    case StateListeningAndWalking:
+      agent->setWaypointPlanner(nullptr);
       break;
     case StateWorking:
       startTimestamp = ros::WallTime::now();
@@ -417,11 +471,20 @@ void AgentStateMachine::deactivateState(AgentState state) {
       // reset talking to id
       agent->talkingToId = -1;
       break;
+    case StateTalkingAndWalking:
+      // reset talking to id
+      agent->talkingToId = -1;
+      break;
     case StateListening:
       // reset listening to id
       agent->listeningToId = -1;
       agent->listeningToAgent = nullptr;
       agent->setForceFactorSocial(2.0);
+      break;
+    case StateListeningAndWalking:
+      // reset listening to id
+      agent->listeningToId = -1;
+      agent->listeningToAgent = nullptr;
       break;
     case StateShopping:
     {
@@ -502,6 +565,10 @@ QString AgentStateMachine::stateToName(AgentState stateIn) {
       return "GroupWalking";
     case StateTalking:
       return "Talking";
+    case StateTalkingAndWalking:
+      return "TalkingAndWalking";
+    case StateListeningAndWalking:
+      return "ListeningAndWalking";
     case StateShopping:
       return "Shopping";
     case StateWorking:

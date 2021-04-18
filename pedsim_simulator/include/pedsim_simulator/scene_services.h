@@ -25,36 +25,19 @@ class SceneServices {
   SceneServices();
   virtual ~SceneServices() = default;
 
-  ros::ServiceServer respawn_peds_service_;
-  ros::ServiceServer remove_all_peds_service_;
-  ros::ServiceServer spawn_peds_service_;
-  ros::ServiceServer reset_peds_service_;
-
   static int agents_index_;
 
-     /**
+    /**
     * spawn_ped_service_ + spawnPed
     * @brief Spawns pedestrian in pedsim and flatland.
     */
   bool spawnPeds(pedsim_srvs::SpawnPeds::Request &request, pedsim_srvs::SpawnPeds::Response &response);
-
-   /**
-    * remove_all_peds_service_ + removeAllPeds
-    * @brief Removes all pedestrians in flatland.
-    */  
-  bool removeAllPeds(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response);
-
   bool resetPeds(std_srvs::SetBool::Request &request, std_srvs::SetBool::Response &response);
 
  protected:
    ros::NodeHandle nh_;
 
  private:
-    /**
-    * @brief Removing all pedestrians in pedsim.
-    * @return corresponding flatland model names of pedestrians
-    */
-  std::vector<std::string> removePedsInPedsim();
 
     /**
     * @brief Adding pedestrian to pedsim.
@@ -68,6 +51,8 @@ class SceneServices {
     */
   std::vector<flatland_msgs::Model> getFlatlandModelsFromAgentCluster(AgentCluster* agentCluster, std::string yaml_file);
 
+  ros::ServiceServer spawn_peds_service_;
+  ros::ServiceServer reset_peds_service_;
 
   std::string spawn_models_service_name_;
   ros::ServiceClient spawn_models_client_;             //Service client to spawn models in flatland

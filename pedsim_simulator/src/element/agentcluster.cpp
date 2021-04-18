@@ -49,8 +49,16 @@ AgentCluster::AgentCluster(double xIn, double yIn, int countIn) {
   forceFactorObstacle = 10.0;
   normal_distribution<double> distribution(0.6, 0.2);
   vmax = distribution(generator);
-  chatting_probability = 0.1;
+  chattingProbability = 0.1;
+  tellStoryProbability = 0.001;
+  groupTalkingProbability = 0.001;
+  talkingAndWalkingProbability = 0.001;
+  maxTalkingDistance = 0.001;
   waypoint_mode = Agent::WaypointMode::LOOP;
+  stateTalkingBaseTime = 6.0;
+  stateTellStoryBaseTime = 6.0;
+  stateGroupTalkingBaseTime = 6.0;
+  stateTalkingAndWalkingBaseTime = 6.0;
 }
 
 AgentCluster::~AgentCluster() {}
@@ -89,7 +97,16 @@ QList<Agent*> AgentCluster::dissolve() {
     a->initialPosY = randomizedY;
     a->setType(agentType);
     a->setVmax(vmax);
-    a->chattingProbability = chatting_probability;
+    a->vmaxDefault = vmax;
+    a->chattingProbability = chattingProbability;
+    a->tellStoryProbability = tellStoryProbability;
+    a->groupTalkingProbability = groupTalkingProbability;
+    a->talkingAndWalkingProbability = talkingAndWalkingProbability;
+    a->stateMachine->stateTalkingBaseTime = stateTalkingBaseTime;
+    a->stateMachine->stateTellStoryBaseTime = stateTellStoryBaseTime;
+    a->stateMachine->stateGroupTalkingBaseTime = stateGroupTalkingBaseTime;
+    a->stateMachine->stateTalkingAndWalkingBaseTime = stateTalkingAndWalkingBaseTime;
+    a->maxTalkingDistance = maxTalkingDistance;
     a->waypointMode = waypoint_mode;
     a->setForceFactorDesired(forceFactorDesired);
     a->setForceFactorSocial(forceFactorSocial);
