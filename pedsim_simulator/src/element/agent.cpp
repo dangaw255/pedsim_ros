@@ -254,7 +254,6 @@ void Agent::move(double h) {
       double angle = 0.5 * M_PI;
       Ped::Tvector neighbor_v_rotated = neighbor_v.x * Ped::Tvector(cos(angle), sin(angle)) + neighbor_v.y * Ped::Tvector(-1 * sin(angle), cos(angle));
       neighbor_v_rotated.normalize();
-      // double default_listening_and_talking_distance = 0.8;
       // set new position every tick instead of "normal" movement
       p = listeningToAgent->getPosition() + (keepDistanceForceDistanceDefault * neighbor_v_rotated);
       // copy v from neighbor
@@ -572,6 +571,26 @@ void Agent::stopMovement() {
   // set v and a to zero
   setv(Ped::Tvector());
   seta(Ped::Tvector());
+}
+
+void Agent::adjustKeepDistanceForceDistance() {
+  // This method is called while in StateListening
+  // Adjust listening distance based on how many agents are listening together with this one
+
+  // get number of agents that are listening to the same id as I do
+  auto agents = SCENE.getAgents();
+  int count = 0;
+  for (auto agent : agents) {
+    if (agent->listeningToId == listeningToId) {
+      count++;
+    }
+  }
+  double distance_between_listening_agents = 0.5;
+  double min_keep_distance_force_distance = 0.3;
+  keepDistanceForceDistance = count * distance_between_listening_agents / (2 * M_PI);
+  if (keepDistanceForceDistance < min_keep_distance_force_distance) {
+    keepDistanceForceDistance = min_keep_distance_force_distance;
+  }
 }
 
 void Agent::setPosition(double xIn, double yIn) {

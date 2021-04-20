@@ -308,6 +308,7 @@ void AgentStateMachine::doStateTransition() {
         agent->listeningToAgent->getStateMachine()->getCurrentState() == AgentStateMachine::AgentState::StateGroupTalking ||
         agent->listeningToAgent->talkingToId == agent->getId()
       ) {
+        agent->adjustKeepDistanceForceDistance();
         return;
       }
     }

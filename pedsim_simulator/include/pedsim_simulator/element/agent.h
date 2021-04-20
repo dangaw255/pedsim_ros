@@ -137,6 +137,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   void disableAllForces();
   void resumeMovement();
   void stopMovement();
+  void adjustKeepDistanceForceDistance();
 
   std::string agentName;
   QList<Waypoint*> destinations;
