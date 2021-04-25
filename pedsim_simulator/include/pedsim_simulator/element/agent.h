@@ -79,7 +79,8 @@ class Agent : public ScenarioElement, public Ped::Tagent {
  public:
   // → Ped::Tagent Overrides/Overloads
   void updateState();
-  void updateDirection();
+  void updateDirection(double h);
+  void rotate(double time_step, double angular_v);
   void move(double h);
   Ped::Tvector desiredForce();
   Ped::Tvector socialForce() const;
@@ -129,6 +130,7 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   bool startGroupTalking();
   bool startTalking();
   bool startTalkingAndWalking();
+  bool finishedRotation();
 
   // misc
   void disableForce(const QString& forceNameIn);
@@ -153,8 +155,9 @@ class Agent : public ScenarioElement, public Ped::Tagent {
   double talkingAndWalkingProbability;
   WaypointMode waypointMode;
   double maxTalkingDistance;
-  // direction the agent is facing on a "higher" level, is dependent on current state, should always have length 1
-  Ped::Tvector facingDirection;
+  // direction the agent is facing on a "higher" level, is dependent on current state
+  double facingDirection;
+  double angleTarget;
   Waypoint* currentDestination;
   AgentStateMachine* stateMachine;
 

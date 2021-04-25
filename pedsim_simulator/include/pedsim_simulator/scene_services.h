@@ -39,6 +39,8 @@ class SceneServices {
 
  private:
 
+  bool spawnStaticObstacles(AgentCluster* cluster);
+
     /**
     * @brief Adding pedestrian to pedsim.
     * @return added agentcluster

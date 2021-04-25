@@ -384,7 +384,7 @@ void Simulator::publishAgents() {
     state.listening_to_id = a->listeningToId;
 
     state.acceleration = VecToMsg(a->getAcceleration());
-    state.direction = VecToMsg(a->facingDirection);
+    state.direction = a->facingDirection;
 
 
     all_status.agent_states.push_back(state);

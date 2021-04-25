@@ -50,22 +50,23 @@ class AgentStateMachine : public QObject {
   // TODO - switch to enum classes
  public:
   typedef enum {
-    StateNone = 0,
-    StateWaiting = 1,
-    StateQueueing = 2,
-    StateWalking = 3,
-    StateGroupWalking = 4,
-    StateShopping = 5,
-    StateTalking = 6,
-    StateWorking = 7,
-    StateLiftingForks = 8,
-    StateLoading = 9,
-    StateLoweringForks = 10,
-    StateTellStory = 11,
-    StateGroupTalking = 12,
-    StateListening = 13,
-    StateTalkingAndWalking = 14,
-    StateListeningAndWalking = 15
+    StateNone,
+    StateWaiting,
+    StateQueueing,
+    StateWalking,
+    StateGroupWalking,
+    StateShopping,
+    StateTalking,
+    StateWorking,
+    StateLiftingForks,
+    StateLoading,
+    StateLoweringForks,
+    StateTellStory,
+    StateGroupTalking,
+    StateListening,
+    StateTalkingAndWalking,
+    StateListeningAndWalking,
+    StateReachedShelf,
   } AgentState;
 
   // Constructor and Destructor
@@ -97,7 +98,7 @@ class AgentStateMachine : public QObject {
   
  protected:
   void deactivateState(AgentState stateIn);
-  bool checkGroupForAttractions(AttractionArea** attractionOut = nullptr) const;
+  // bool checkGroupForAttractions(AttractionArea** attractionOut = nullptr) const;
   double getRandomDuration(double baseTime);
 
   Agent* agent;

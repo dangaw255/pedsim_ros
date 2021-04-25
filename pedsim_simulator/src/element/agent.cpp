@@ -190,29 +190,54 @@ void Agent::updateState() {
 }
 
 // update direction the agent is facing based on the state
-void Agent::updateDirection() {
+void Agent::updateDirection(double h) {
+  // if (id == 8) ROS_INFO("curr dest angle: %lf", currentDestination->staticObstacleAngle);
   switch (stateMachine->getCurrentState()) {
-  case AgentStateMachine::AgentState::StateWalking:
-    facingDirection = v;
-    break;
-  case AgentStateMachine::AgentState::StateListening:
-    facingDirection = keepDistanceTo - p;
-    break;
-  case AgentStateMachine::AgentState::StateLiftingForks:
-    facingDirection = currentDestination != nullptr ? currentDestination->getPosition() - p : Ped::Tvector(1, 0);
-    break;
-  case AgentStateMachine::AgentState::StateLoading:
-    facingDirection = currentDestination != nullptr ? currentDestination->getPosition() - p : Ped::Tvector(1, 0);
-    break;
-  case AgentStateMachine::AgentState::StateLoweringForks:
-    facingDirection = currentDestination != nullptr ? currentDestination->getPosition() - p : Ped::Tvector(1, 0);
-    break;
-  
-  default:
-    break;
+    case AgentStateMachine::AgentState::StateWalking:
+      if (v.length() > 0.001) {
+        facingDirection = v.polarAngle().toRadian(Ped::Tangle::PositiveOnlyRange);
+      }
+      break;
+    case AgentStateMachine::AgentState::StateListening:
+      facingDirection = (keepDistanceTo - p).polarAngle().toRadian(Ped::Tangle::PositiveOnlyRange);
+      break;
+    case AgentStateMachine::AgentState::StateLiftingForks:
+      facingDirection = currentDestination->staticObstacleAngle;
+      break;
+    case AgentStateMachine::AgentState::StateLoading:
+      facingDirection = currentDestination->staticObstacleAngle;
+      break;
+    case AgentStateMachine::AgentState::StateLoweringForks:
+      facingDirection = currentDestination->staticObstacleAngle;
+      break;
+    case AgentStateMachine::AgentState::StateReachedShelf:
+      rotate(h, 1.0);
+      break;
+    default:
+      if (v.length() > 0.001) {
+        facingDirection = v.polarAngle().toRadian(Ped::Tangle::PositiveOnlyRange);
+      }
+      break;
+  }
+}
+
+void Agent::rotate(double time_step, double angular_v) {
+  double angle = time_step * angular_v;
+  double angle_diff = angleTarget - facingDirection;
+
+  while (angle_diff < 0) {
+    angle_diff += 2 * M_PI;
   }
 
-  facingDirection.normalize();
+  while (angle_diff > 2 * M_PI) {
+    angle_diff -= 2 * M_PI;
+  }
+
+  if (angle_diff > M_PI) {
+    angle *= -1;
+  }
+
+  facingDirection += angle;
 }
 
 void Agent::move(double h) {
@@ -248,7 +273,8 @@ void Agent::move(double h) {
     }
   } else {
     // special case for listening and walking
-    if (stateMachine->getCurrentState() == AgentStateMachine::AgentState::StateListeningAndWalking) {
+    auto state = stateMachine->getCurrentState();
+    if (state == AgentStateMachine::AgentState::StateListeningAndWalking) {
       // simulate movement by always placing the agent next to listeningToAgent
       Ped::Tvector neighbor_v = listeningToAgent->getVelocity();
       double angle = 0.5 * M_PI;
@@ -258,11 +284,12 @@ void Agent::move(double h) {
       p = listeningToAgent->getPosition() + (keepDistanceForceDistanceDefault * neighbor_v_rotated);
       // copy v from neighbor
       v = neighbor_v;
+    } else if (state == AgentStateMachine::AgentState::StateReachedShelf){
     } else {
       // normal movement
       Ped::Tagent::move(h);
     }
-    updateDirection();
+    updateDirection(h);
   }
 
   if (getType() == Ped::Tagent::ELDER) {
@@ -534,6 +561,11 @@ bool Agent::startTalkingAndWalking(){
   }
 
   return false;
+}
+
+
+bool Agent::finishedRotation() {
+  return abs(fmod(facingDirection, 2 * M_PI) - angleTarget) < 0.1;
 }
 
 

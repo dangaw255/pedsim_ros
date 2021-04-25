@@ -40,6 +40,10 @@ bool SceneServices::spawnPeds(pedsim_srvs::SpawnPeds::Request &request, pedsim_s
     pedsim_msgs::Ped ped = request.peds[ped_i];
     AgentCluster* agentCluster = addAgentClusterToPedsim(ped);
 
+    if (agentCluster->getType() == Ped::Tagent::AgentType::VEHICLE) {
+      spawnStaticObstacles(agentCluster);
+    }
+
     // add flatland models to spawn_models service request
     std::vector<flatland_msgs::Model> new_models = getFlatlandModelsFromAgentCluster(agentCluster, ped.yaml_file);
     srv.request.models.insert(srv.request.models.end(), new_models.begin(), new_models.end());
@@ -78,6 +82,36 @@ bool SceneServices::resetPeds(std_srvs::SetBool::Request &request, std_srvs::Set
 
   response.success = true;
   return true;
+}
+
+bool SceneServices::spawnStaticObstacles(AgentCluster* cluster) {
+  std::string yaml_path = ros::package::getPath("simulator_setup") + "/obstacles/shelf.yaml";
+  flatland_msgs::SpawnModels srv;
+  for (int i = 0; i < cluster->getCount(); i++) {
+    auto waypoints = cluster->getWaypoints();
+    for (int j = 0; j < waypoints.length(); j++) {
+      auto waypoint = waypoints[j];
+      flatland_msgs::Model model;
+      model.name = "agent_" + std::to_string(i) + "_static_obstacle_" + std::to_string(j);
+      model.ns = "pedsim_agent_" +  std::to_string(i);
+      model.pose.x = waypoint->getx() + 1.5;
+      model.pose.y = waypoint->gety();
+      model.yaml_path = yaml_path;
+      srv.request.models.push_back(model);
+    }
+  }
+
+  // make sure client is valid
+  while (!spawn_models_client_.isValid()) {
+    ROS_WARN("Reconnecting to flatland spawn_models service...");
+    spawn_models_client_.waitForExistence(ros::Duration(5.0));
+    spawn_models_client_ = nh_.serviceClient<flatland_msgs::SpawnModels>(spawn_models_service_name_, true);
+  }
+
+  // call spawn_models service
+  spawn_models_client_.call(srv);
+
+  return srv.response.success;
 }
 
 
@@ -131,6 +165,9 @@ AgentCluster* SceneServices::addAgentClusterToPedsim(pedsim_msgs::Ped ped) {
     const double r = ped.waypoints[i].z;
     AreaWaypoint* w = new AreaWaypoint(id, x, y, r);
     w->setBehavior(static_cast<Ped::Twaypoint::Behavior>(0));
+    // TODO make this dependent on static obstacle
+    // w->staticObstacleAngle = fmod(0.5 * i * M_PI, 2 * M_PI);
+    w->staticObstacleAngle = 0.0;
     SCENE.addWaypoint(w);
     agentCluster->addWaypoint(w);
   }
