@@ -329,7 +329,7 @@ void Simulator::publishRobotPosition() {
 }
 
 void Simulator::publishAgents() {
-  if (SCENE.getAgents().size() < 2) {
+  if (SCENE.getAgents().size() < 1) {
     return;
   }
 
@@ -385,6 +385,7 @@ void Simulator::publishAgents() {
 
     state.acceleration = VecToMsg(a->getAcceleration());
     state.direction = a->facingDirection;
+    state.keep_distance_to = VecToMsg(a->keepDistanceTo);
 
 
     all_status.agent_states.push_back(state);

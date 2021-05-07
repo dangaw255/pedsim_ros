@@ -201,6 +201,9 @@ void Agent::updateDirection(double h) {
     case AgentStateMachine::AgentState::StateListening:
       facingDirection = (keepDistanceTo - p).polarAngle().toRadian(Ped::Tangle::PositiveOnlyRange);
       break;
+    case AgentStateMachine::AgentState::StateGroupTalking:
+      facingDirection = (keepDistanceTo - p).polarAngle().toRadian(Ped::Tangle::PositiveOnlyRange);
+      break;
     case AgentStateMachine::AgentState::StateLiftingForks:
       facingDirection = currentDestination->staticObstacleAngle;
       break;
@@ -288,6 +291,7 @@ void Agent::move(double h) {
     } else {
       // normal movement
       Ped::Tagent::move(h);
+      // if (state == AgentStateMachine::AgentState::StateGroupTalking) ROS_INFO("KDF: %lf", keepdistanceforce.length());
     }
     updateDirection(h);
   }
@@ -612,12 +616,18 @@ void Agent::adjustKeepDistanceForceDistance() {
   // get number of agents that are listening to the same id as I do
   auto agents = SCENE.getAgents();
   int count = 0;
+  int check_for_id = -1;
+  if (stateMachine->getCurrentState() == AgentStateMachine::AgentState::StateGroupTalking) {
+    check_for_id = id;
+  } else {
+    check_for_id = listeningToId;
+  }
   for (auto agent : agents) {
-    if (agent->listeningToId == listeningToId) {
+    if (agent->listeningToId == check_for_id) {
       count++;
     }
   }
-  double distance_between_listening_agents = 0.5;
+  double distance_between_listening_agents = 1.5;
   double min_keep_distance_force_distance = 0.3;
   keepDistanceForceDistance = count * distance_between_listening_agents / (2 * M_PI);
   if (keepDistanceForceDistance < min_keep_distance_force_distance) {

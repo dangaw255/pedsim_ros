@@ -9,3 +9,4 @@ int64 talking_to_id
 int64 listening_to_id
 geometry_msgs/Vector3 acceleration
 float64 direction
+geometry_msgs/Vector3 keep_distance_to
